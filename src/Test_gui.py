@@ -42,7 +42,9 @@ class Options(object):
 
 class InstrumentBox:
 
-    def __init__(self, parent):
+    def __init__(self, parent, client):
+        self._client = client
+        self._instrument = None
         self._box = Box(parent, layout='grid', visible=False)
         Text(self._box, grid=[0, 0], text='Name:')
         self._name = Text(self._box, grid=[1,0])
@@ -59,20 +61,20 @@ class InstrumentBox:
         self._inst_list = {}
 
     def display(self, instrument_name):
-        instrument = self._inst_list[instrument_name]
+        self._instrument = self._inst_list[instrument_name]
         self._name.clear()
-        self._name.append(instrument.name)
+        self._name.append(self._instrument.name)
         self._state.clear()
-        self._state.append(instrument.state)
+        self._state.append(self._instrument.state)
         self._dev_state.clear()
-        self._dev_state.append(instrument.dev_state)
+        self._dev_state.append(self._instrument.dev_state)
         self._protocol.clear()
-        self._protocol.append(instrument.protocol)
+        self._protocol.append(self._instrument.protocol)
         self._msg_in.clear()
-        self._msg_in.append(str(instrument.msg_in))
+        self._msg_in.append(str(self._instrument.msg_in))
         self._msg_out.clear()
-        self._msg_out.append(str(instrument.msg_out))
-        if instrument.state == 'RUNNING':
+        self._msg_out.append(str(self._instrument.msg_out))
+        if self._instrument.state == 'RUNNING':
             self._action.text = 'Stop'
         else:
             self._action.text = 'Start'
@@ -82,7 +84,10 @@ class InstrumentBox:
         self._inst_list[instrument.name] = instrument
 
     def action(self):
-        pass
+        if self._action.text == 'Stop':
+            self._instrument.stop(self._client)
+        else:
+            self._instrument.start(self._client)
 
 
 def main():
@@ -93,7 +98,7 @@ def main():
     box = Box(top, align='left')
     ti = Text(box, align='top', text='Instruments')
     # instr_lists = ListBox(box, align='top')
-    inst_box = InstrumentBox(top)
+    inst_box = InstrumentBox(top, console)
     instr_lists = ListBox(box, align='top', command=inst_box.display)
     instr = console.get_instruments()
     for i in instr:
