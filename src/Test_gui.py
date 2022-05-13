@@ -58,10 +58,13 @@ class InstrumentBox:
         Text(self._box, grid=[0,3], text='Messages sent')
         self._msg_out = Text(self._box, grid=[1, 3])
         self._action = PushButton(self._box, grid=[0,4], command=self.action)
-        self._inst_list = {}
+        self._refresh = PushButton(self._box, grid=[1, 4], command=self.refresh, text='Refresh')
 
-    def display(self, instrument_name):
-        self._instrument = self._inst_list[instrument_name]
+    def set_instrument(self, instrument):
+        self._instrument = instrument
+        self.display()
+
+    def display(self):
         self._name.clear()
         self._name.append(self._instrument.name)
         self._state.clear()
@@ -80,8 +83,11 @@ class InstrumentBox:
             self._action.text = 'Start'
         self._box.visible = True
 
-    def add_instrument(self, instrument):
-        self._inst_list[instrument.name] = instrument
+    def refresh(self):
+        inst = self._client.get_instrument(self._instrument.name)
+        if inst is not None:
+            self._instrument = inst
+            self.display()
 
     def action(self):
         if self._action.text == 'Stop':
@@ -90,20 +96,56 @@ class InstrumentBox:
             self._instrument.start(self._client)
 
 
+class InstrumentListBox:
+
+    def __init__(self, parent, inst_box: InstrumentBox):
+        self._inst_box = inst_box
+        self._box = Box(parent, align='top')
+        Text(self._box, align='top', text='Instruments')
+        self._instr_list = ListBox(self._box, align='top', command=self.select)
+        self._instruments = {}
+
+    def set_instruments(self, instr):
+        for i in instr:
+            self._instr_list.append(i.name)
+            self._instruments[i.name] = i
+
+    def select(self, name):
+        self._inst_box.set_instrument(self._instruments[name])
+
+
+class ServerBox:
+
+    def __init__(self, parent, address):
+        self._address = address
+        self._box = Box(parent, align='top', layout='grid')
+        Text(self._box, grid=[0, 0], text="Server@")
+        self._addr_text = Text(self._box, grid=[1, 0], text=address)
+        self._state_text = Text(self._box, grid=[2, 0])
+
+    def set_address(self, address):
+        self._address = address
+        self._addr_text.clear()
+        self._addr_text.append(address)
+
+    def set_state(self, state):
+        self._state_text.clear()
+        self._state_text.append(state)
+
 def main():
     opts = Options(parser)
     server = "%s:%d" % (opts.address, opts.port)
     console = ConsoleClient(server)
     top = App(title="Navigation router control")
-    box = Box(top, align='left')
-    ti = Text(box, align='top', text='Instruments')
-    # instr_lists = ListBox(box, align='top')
+    server_box = ServerBox(top, server)
     inst_box = InstrumentBox(top, console)
-    instr_lists = ListBox(box, align='top', command=inst_box.display)
-    instr = console.get_instruments()
-    for i in instr:
-        instr_lists.append(i.name)
-        inst_box.add_instrument(i)
+    instr_list = InstrumentListBox(top, inst_box)
+    resp = console.server_status()
+    if resp is not None:
+        server_box.set_state('CONNECTED')
+    instruments = console.get_instruments()
+    if instruments is not None:
+        instr_list.set_instruments(instruments)
 
     top.display()
 
