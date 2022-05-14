@@ -116,12 +116,14 @@ class InstrumentListBox:
 
 class ServerBox:
 
-    def __init__(self, parent, address):
+    def __init__(self, parent, address, server):
         self._address = address
+        self._server = server
         self._box = Box(parent, align='top', layout='grid')
         Text(self._box, grid=[0, 0], text="Server@")
         self._addr_text = Text(self._box, grid=[1, 0], text=address)
         self._state_text = Text(self._box, grid=[2, 0])
+        PushButton(self._box, grid=[0, 1], text='Stop', command=self.stop_server)
 
     def set_address(self, address):
         self._address = address
@@ -132,12 +134,16 @@ class ServerBox:
         self._state_text.clear()
         self._state_text.append(state)
 
+    def stop_server(self):
+        self._server.server_cmd('stop')
+
+
 def main():
     opts = Options(parser)
     server = "%s:%d" % (opts.address, opts.port)
     console = ConsoleClient(server)
     top = App(title="Navigation router control")
-    server_box = ServerBox(top, server)
+    server_box = ServerBox(top, server, console)
     inst_box = InstrumentBox(top, console)
     instr_list = InstrumentListBox(top, inst_box)
     resp = console.server_status()
