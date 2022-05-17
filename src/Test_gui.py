@@ -3,11 +3,15 @@
 import os
 import sys
 from argparse import ArgumentParser
+import logging
 
 sys.path.insert(0, "../../navigation_server/src")
 
 from guizero import App, ListBox, Text, Box, PushButton
 from console_client import *
+
+
+_logger = logging.getLogger("ShipDataClient")
 
 
 def _parser():
@@ -42,13 +46,13 @@ class Options(object):
 
 class InstrumentBox:
 
-    def __init__(self, parent, client):
+    def __init__(self, parent, pos, client):
         self._client = client
         self._instrument = None
-        self._box = Box(parent, layout='grid', visible=False)
+        self._box = Box(parent, grid=pos, layout='grid', visible=False)
         Text(self._box, grid=[0, 0], text='Name:')
         self._name = Text(self._box, grid=[1,0])
-        Text(self._box, grid=[2,0], text='States:')
+        Text(self._box, grid=[2,0], text='State:')
         self._state = Text(self._box, grid=[3,0])
         self._dev_state = Text(self._box, grid=[4,0])
         Text(self._box, grid=[0, 1], text="Protocol:")
@@ -94,13 +98,14 @@ class InstrumentBox:
             self._instrument.stop(self._client)
         else:
             self._instrument.start(self._client)
+        self.refresh()
 
 
 class InstrumentListBox:
 
-    def __init__(self, parent, inst_box: InstrumentBox):
+    def __init__(self, parent, pos, inst_box: InstrumentBox):
         self._inst_box = inst_box
-        self._box = Box(parent, align='top')
+        self._box = Box(parent, grid=pos, align='top')
         Text(self._box, align='top', text='Instruments')
         self._instr_list = ListBox(self._box, align='top', command=self.select)
         self._instruments = {}
@@ -124,6 +129,7 @@ class ServerBox:
         self._addr_text = Text(self._box, grid=[1, 0], text=address)
         self._state_text = Text(self._box, grid=[2, 0])
         PushButton(self._box, grid=[0, 1], text='Stop', command=self.stop_server)
+        self._status = Text(parent, grid=[1, 1])
 
     def set_address(self, address):
         self._address = address
@@ -141,11 +147,19 @@ class ServerBox:
 def main():
     opts = Options(parser)
     server = "%s:%d" % (opts.address, opts.port)
+    # logger setup => stream handler for now
+    loghandler = logging.StreamHandler()
+    logformat = logging.Formatter("%(asctime)s | [%(levelname)s] %(message)s")
+    loghandler.setFormatter(logformat)
+    _logger.addHandler(loghandler)
+    _logger.setLevel(logging.INFO)
+
     console = ConsoleClient(server)
     top = App(title="Navigation router control")
     server_box = ServerBox(top, server, console)
-    inst_box = InstrumentBox(top, console)
-    instr_list = InstrumentListBox(top, inst_box)
+    inst_wbox = Box(top, layout='grid')
+    inst_box = InstrumentBox(inst_wbox, [0, 1], console)
+    instr_list = InstrumentListBox(inst_wbox, [0, 0], inst_box)
     resp = console.server_status()
     if resp is not None:
         server_box.set_state('CONNECTED')
