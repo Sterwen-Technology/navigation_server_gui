@@ -129,7 +129,7 @@ class ServerBox:
         self._addr_text = Text(self._box, grid=[1, 0], text=address)
         self._state_text = Text(self._box, grid=[2, 0])
         PushButton(self._box, grid=[0, 1], text='Stop', command=self.stop_server)
-        self._status = Text(parent, grid=[1, 1])
+        self._status = Text(self._box, grid=[1, 1])
 
     def set_address(self, address):
         self._address = address
@@ -157,8 +157,8 @@ def main():
     console = ConsoleClient(server)
     top = App(title="Navigation router control")
     server_box = ServerBox(top, server, console)
-    inst_wbox = Box(top, layout='grid')
-    inst_box = InstrumentBox(inst_wbox, [0, 1], console)
+    inst_wbox = Box(top, align='left', layout='grid')
+    inst_box = InstrumentBox(inst_wbox, [1, 0], console)
     instr_list = InstrumentListBox(inst_wbox, [0, 0], inst_box)
     resp = console.server_status()
     if resp is not None:
