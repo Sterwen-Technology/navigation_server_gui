@@ -5,6 +5,7 @@ import sys
 from argparse import ArgumentParser
 import logging
 
+sys.path.insert(0, "../../navigation_server/src/navigation_clients")
 sys.path.insert(0, "../../navigation_server/src")
 
 from guizero import App, ListBox, Text, Box, PushButton
