@@ -5,11 +5,11 @@ import sys
 from argparse import ArgumentParser
 import logging
 
-sys.path.insert(0, "../../navigation_server/src/navigation_clients")
+# sys.path.insert(0, "../../navigation_server/src/navigation_clients")
 sys.path.insert(0, "../../navigation_server/src")
 
 from guizero import App, ListBox, Text, Box, PushButton
-from console_client import *
+from navigation_clients.console_client import *
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -122,15 +122,17 @@ class InstrumentListBox:
 
 class ServerBox:
 
-    def __init__(self, parent, address, server):
+    def __init__(self, parent, address, console):
         self._address = address
-        self._server = server
+        self._server = console
+        self._proxy = console.server_status()
         self._box = Box(parent, align='top', layout='grid')
         Text(self._box, grid=[0, 0], text="Server@")
         self._addr_text = Text(self._box, grid=[1, 0], text=address)
         self._state_text = Text(self._box, grid=[2, 0])
-        PushButton(self._box, grid=[0, 1], text='Stop', command=self.stop_server)
-        self._status = Text(self._box, grid=[1, 1])
+        Text(self._box,grid=[0, 1], text=self._proxy.version)
+        PushButton(self._box, grid=[0, 2], text='Stop', command=self.stop_server)
+        self._status = Text(self._box, grid=[1, 2])
 
     def set_address(self, address):
         self._address = address
