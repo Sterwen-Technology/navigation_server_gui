@@ -8,7 +8,7 @@ import logging
 # sys.path.insert(0, "../../navigation_server/src/navigation_clients")
 sys.path.insert(0, "../../navigation_server/src")
 
-from guizero import App, ListBox, Text, Box, PushButton
+from guizero import App, ListBox, Text, Box, PushButton, Drawing
 from victron_mppt.mppt_client import *
 
 
@@ -133,7 +133,10 @@ def main():
     mppt_svr = MPPT_Client(opts)
     top = App(title="MPPT control")
     top.resize(700, 500)
-    server_box = ServerBox(top, server, mppt_svr)
+    container = Box(top)
+    server_box = ServerBox(container, server, mppt_svr)
+    power_curve = Drawing(container, align='bottom', height=200, width='fill')
+    power_curve.bg = 'blue'
     resp = mppt_svr.server_status()
     if resp is not None:
         server_box.set_state('CONNECTED')
