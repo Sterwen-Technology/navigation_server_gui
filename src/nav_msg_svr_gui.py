@@ -45,11 +45,11 @@ class Options(object):
             raise AttributeError(name)
 
 
-class InstrumentBox:
+class CouplerBox:
 
     def __init__(self, parent, pos, client):
         self._client = client
-        self._instrument = None
+        self._coupler = None
         self._box = Box(parent, grid=pos, layout='grid', visible=False)
         Text(self._box, grid=[0, 0], text='Name:')
         self._name = Text(self._box, grid=[1,0])
@@ -65,59 +65,62 @@ class InstrumentBox:
         self._action = PushButton(self._box, grid=[0,4], command=self.action)
         self._refresh = PushButton(self._box, grid=[1, 4], command=self.refresh, text='Refresh')
 
-    def set_instrument(self, instrument):
-        self._instrument = instrument
+    def set_coupler(self, coupler):
+        self._coupler = coupler
         self.display()
 
     def display(self):
         self._name.clear()
-        self._name.append(self._instrument.name)
+        self._name.append(self._coupler.name)
         self._state.clear()
-        self._state.append(self._instrument.state)
+        self._state.append(self._coupler.state)
         self._dev_state.clear()
-        self._dev_state.append(self._instrument.dev_state)
+        self._dev_state.append(self._coupler.dev_state)
         self._protocol.clear()
-        self._protocol.append(self._instrument.protocol)
+        self._protocol.append(self._coupler.protocol)
         self._msg_in.clear()
-        self._msg_in.append(str(self._instrument.msg_in))
+        self._msg_in.append(str(self._coupler.msg_in))
         self._msg_out.clear()
-        self._msg_out.append(str(self._instrument.msg_out))
-        if self._instrument.state == 'RUNNING':
+        self._msg_out.append(str(self._coupler.msg_out))
+        if self._coupler.state == 'RUNNING':
             self._action.text = 'Stop'
         else:
             self._action.text = 'Start'
         self._box.visible = True
 
     def refresh(self):
-        inst = self._client.get_instrument(self._instrument.name)
+        try:
+            inst = self._client.get_coupler(self._coupler.name)
+        except ConsoleAccessException:
+            return
         if inst is not None:
-            self._instrument = inst
+            self._coupler = inst
             self.display()
 
     def action(self):
         if self._action.text == 'Stop':
-            self._instrument.stop(self._client)
+            self._coupler.stop(self._client)
         else:
-            self._instrument.start(self._client)
+            self._coupler.start(self._client)
         self.refresh()
 
 
-class InstrumentListBox:
+class CouplerListBox:
 
-    def __init__(self, parent, pos, inst_box: InstrumentBox):
+    def __init__(self, parent, pos, inst_box: CouplerBox):
         self._inst_box = inst_box
         self._box = Box(parent, grid=pos, align='top')
-        Text(self._box, align='top', text='Instruments')
+        Text(self._box, align='top', text='Couplers')
         self._instr_list = ListBox(self._box, align='top', command=self.select)
-        self._instruments = {}
+        self._couplers = {}
 
-    def set_instruments(self, instr):
+    def set_couplers(self, instr):
         for i in instr:
             self._instr_list.append(i.name)
-            self._instruments[i.name] = i
+            self._couplers[i.name] = i
 
     def select(self, name):
-        self._inst_box.set_instrument(self._instruments[name])
+        self._inst_box.set_coupler(self._couplers[name])
 
 
 class ServerBox:
@@ -130,9 +133,21 @@ class ServerBox:
         Text(self._box, grid=[0, 0], text="Server@")
         self._addr_text = Text(self._box, grid=[1, 0], text=address)
         self._state_text = Text(self._box, grid=[2, 0])
-        Text(self._box,grid=[0, 1], text=self._proxy.version)
+        Text(self._box, grid=[0, 1], text=self._proxy.version)
+        Text(self._box, grid=[1, 1], text='Start time')
+        Text(self._box, grid=[2, 1], text=self._proxy.start_time)
         PushButton(self._box, grid=[0, 2], text='Stop', command=self.stop_server)
         self._status = Text(self._box, grid=[1, 2])
+        self._sub_servers_box = Box(parent, align='top', layout='grid')
+        index = 1
+        Text(self._sub_servers_box, grid=[0, 0], text="Sub server name")
+        Text(self._sub_servers_box, grid=[1, 0], text="Port")
+        Text(self._sub_servers_box, grid=[2, 0], text="Type")
+        Text(self._sub_servers_box, grid=[3, 0], text="Connections")
+        self._sub_server_lines = []
+        for ss in self._proxy.sub_servers():
+            self._sub_server_lines.append(SubServerBox(self._sub_servers_box, index, ss))
+            index += 1
 
     def set_address(self, address):
         self._address = address
@@ -147,6 +162,19 @@ class ServerBox:
         self._server.server_cmd('stop')
 
 
+class SubServerBox:
+
+    def __init__(self, parent, index, sub_server):
+        self._box = Box(parent, grid=[0, index], layout='grid')
+        self._sub_server = sub_server
+        Text(self._box, grid=[0, 0], text=sub_server.name)
+        Text(self._box, grid=[1, 0], text=sub_server.port)
+        Text(self._box, grid=[2, 0], text=sub_server.server_type)
+        Text(self._box, grid=[3, 0], text=sub_server.nb_connections)
+
+
+
+
 def main():
     opts = Options(parser)
     server = "%s:%d" % (opts.address, opts.port)
@@ -159,16 +187,20 @@ def main():
 
     console = ConsoleClient(server)
     top = App(title="Navigation router control")
-    server_box = ServerBox(top, server, console)
+    try:
+        server_box = ServerBox(top, server, console)
+    except ConsoleAccessException:
+        _logger.critical("Cannot access server or server error")
+        return
     inst_wbox = Box(top, align='left', layout='grid')
-    inst_box = InstrumentBox(inst_wbox, [1, 0], console)
-    instr_list = InstrumentListBox(inst_wbox, [0, 0], inst_box)
+    inst_box = CouplerBox(inst_wbox, [1, 0], console)
+    instr_list = CouplerListBox(inst_wbox, [0, 0], inst_box)
     resp = console.server_status()
     if resp is not None:
         server_box.set_state('CONNECTED')
-    instruments = console.get_instruments()
-    if instruments is not None:
-        instr_list.set_instruments(instruments)
+    couplers = console.get_couplers()
+    if couplers is not None:
+        instr_list.set_couplers(couplers)
 
     top.display()
 
