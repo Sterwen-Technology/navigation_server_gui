@@ -128,16 +128,20 @@ class ServerBox:
     def __init__(self, parent, address, console):
         self._address = address
         self._server = console
-        self._proxy = console.server_status()
         self._box = Box(parent, align='top', layout='grid')
         Text(self._box, grid=[0, 0], text="Server@")
         self._addr_text = Text(self._box, grid=[1, 0], text=address)
         self._state_text = Text(self._box, grid=[2, 0])
+        try:
+            self._proxy = console.server_status()
+        except ConsoleAccessError:
+            self._state_text.append('DISCONNECTED')
+            return
         Text(self._box, grid=[0, 1], text=self._proxy.version)
         Text(self._box, grid=[1, 1], text='Start time')
         Text(self._box, grid=[2, 1], text=self._proxy.start_time)
         PushButton(self._box, grid=[0, 2], text='Stop', command=self.stop_server)
-        self._status = Text(self._box, grid=[1, 2])
+        self._status = Text(self._box, grid=[1, 2], text='Running')
         self._sub_servers_box = Box(parent, align='top', layout='grid')
         index = 1
         Text(self._sub_servers_box, grid=[0, 0], text="Sub server name")
@@ -161,18 +165,36 @@ class ServerBox:
     def stop_server(self):
         self._server.server_cmd('stop')
 
+    def refresh(self):
+        try:
+            self._proxy = self._server.server_status()
+        except ConsoleAccessException:
+            self._status.clear()
+            self._status.append('Stopped')
+            self.set_state('DISCONNECTED')
+            return
+        sub = self._proxy.get_sub_servers()
+        for l in self._sub_server_lines:
+            l.refresh(sub)
+
+    def set_refresh_timer(self):
+        self._box.repeat(10000, self.refresh)
+
 
 class SubServerBox:
 
     def __init__(self, parent, index, sub_server):
-        self._box = Box(parent, grid=[0, index], layout='grid')
-        self._sub_server = sub_server
-        Text(self._box, grid=[0, 0], text=sub_server.name)
-        Text(self._box, grid=[1, 0], text=sub_server.port)
-        Text(self._box, grid=[2, 0], text=sub_server.server_type)
-        Text(self._box, grid=[3, 0], text=sub_server.nb_connections)
+        self._box = parent
+        self._index = index - 1 # index in the server list
+        self._name = Text(self._box, grid=[0, index], text=sub_server.name)
+        self._port = Text(self._box, grid=[1, index], text=sub_server.port)
+        self._type = Text(self._box, grid=[2, index], text=sub_server.server_type)
+        self._nb_connections = Text(self._box, grid=[3, index], text=str(sub_server.nb_connections))
 
-
+    def refresh(self, sub_servers):
+        # print("Sub refresh", sub_servers[self._index].name, sub_servers[self._index].nb_connections)
+        self._nb_connections.clear()
+        self._nb_connections.append(str(sub_servers[self._index].nb_connections))
 
 
 def main():
@@ -202,6 +224,7 @@ def main():
     if couplers is not None:
         instr_list.set_couplers(couplers)
 
+    server_box.set_refresh_timer()
     top.display()
 
 
