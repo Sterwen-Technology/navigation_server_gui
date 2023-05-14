@@ -154,6 +154,7 @@ class ServerBox:
         self._parent = parent
         self._coupler_list = None
         self._coupler_box = None
+        self._devices = None
         self._box = Box(parent, align='top', layout='grid')
         Text(self._box, grid=[0, 0], text="Server@")
         self._addr_text = Text(self._box, grid=[1, 0], text=address)
@@ -185,6 +186,14 @@ class ServerBox:
         for ss in self._proxy.sub_servers():
             self._sub_server_lines.append(SubServerBox(self._sub_servers_box, index, ss))
             index += 1
+        self._devices_box = Box(self._parent, align='top', layout='grid')
+        Text(self._devices_box, grid=[0, 0], text="NMEA2000 Device")
+        Text(self._devices_box, grid=[1, 0], text="address")
+        Text(self._devices_box, grid=[2, 0], text="Manufacturer")
+        self._devices = self._server.get_devices()
+        for dev in self._devices:
+            print(dev.address, dev.manufacturer_name, dev.product_name, dev.description)
+
 
     def set_coupler_widgets(self, coupler_box, coupler_list):
         self._coupler_list = coupler_list
@@ -270,6 +279,13 @@ class SubServerBox:
         self._nb_connections.clear()
         self._nb_connections.append(str(sub_servers[self._index].nb_connections))
 
+
+class DeviceBox:
+
+    def __init__(self, parent, index, device):
+        self._box = parent
+        self._index = index - 1  # index in the server list
+        self._addr = Text(self._box, grid=[0, index], text=device.address)
 
 def main():
     opts = Options(parser)
