@@ -186,14 +186,18 @@ class ServerBox:
         for ss in self._proxy.sub_servers():
             self._sub_server_lines.append(SubServerBox(self._sub_servers_box, index, ss))
             index += 1
+        Text(self._parent, align='top', text="NMEA2000 Devices")
         self._devices_box = Box(self._parent, align='top', layout='grid')
-        Text(self._devices_box, grid=[0, 0], text="NMEA2000 Device")
-        Text(self._devices_box, grid=[1, 0], text="address")
-        Text(self._devices_box, grid=[2, 0], text="Manufacturer")
+        Text(self._devices_box, grid=[0, 0], text="Address")
+        Text(self._devices_box, grid=[1, 0], text="Manufacturer")
+        Text(self._devices_box, grid=[2, 0], text="Product Name")
+        Text(self._devices_box, grid=[3, 0], text="Description")
         self._devices = self._server.get_devices()
+        index = 1
+        self._devices_lines = []
         for dev in self._devices:
-            print(dev.address, dev.manufacturer_name, dev.product_name, dev.description)
-
+            self._devices_lines.append(DeviceBox(self._devices_box, index, dev))
+            index += 1
 
     def set_coupler_widgets(self, coupler_box, coupler_list):
         self._coupler_list = coupler_list
@@ -286,6 +290,10 @@ class DeviceBox:
         self._box = parent
         self._index = index - 1  # index in the server list
         self._addr = Text(self._box, grid=[0, index], text=device.address)
+        self._mfg = Text(self._box, grid=[1, index], text=device.manufacturer_name)
+        self._prod = Text(self._box, grid=[2, index], text=device.product_name)
+        self._descr = Text(self._box, grid=[3, index], text=device.description)
+
 
 def main():
     opts = Options(parser)
