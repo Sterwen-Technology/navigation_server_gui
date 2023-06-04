@@ -1,5 +1,4 @@
 
-
 import os
 import sys
 from argparse import ArgumentParser
@@ -8,8 +7,9 @@ import logging
 # sys.path.insert(0, "../../navigation_server/src/navigation_clients")
 sys.path.insert(0, "../../navigation_server/src")
 
-from guizero import App, ListBox, Text, Box, PushButton
+from guizero import App, ListBox, Text, Box, PushButton, MenuBar
 from navigation_clients.console_client import *
+from control_panel import ControlPanel
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -24,6 +24,9 @@ def _parser():
     p.add_argument("-a", "--address", action="store", type=str,
                    default='127.0.0.1',
                    help="IP address for Navigation server, default is localhost")
+    p.add_argument("-s", "--system", action="store", type=int,
+                   default=4506,
+                   help="System control agent port, default 4506")
 
     return p
 
@@ -53,12 +56,12 @@ class CouplerBox:
         self._disabled = True
         self._box = Box(parent, grid=pos, layout='grid', visible=False)
         Text(self._box, grid=[0, 0], text='Name:')
-        self._name = Text(self._box, grid=[1,0])
-        Text(self._box, grid=[2,0], text='State:')
-        self._state = Text(self._box, grid=[3,0])
-        self._dev_state = Text(self._box, grid=[4,0])
+        self._name = Text(self._box, grid=[1 ,0])
+        Text(self._box, grid=[2 ,0], text='State:')
+        self._state = Text(self._box, grid=[3 ,0])
+        self._dev_state = Text(self._box, grid=[4 ,0])
         Text(self._box, grid=[0, 1], text="Protocol:")
-        self._protocol = Text(self._box, grid=[1,1])
+        self._protocol = Text(self._box, grid=[1 ,1])
         Text(self._box, grid=[0, 2], text="Messages received:")
         self._msg_in = Text(self._box, grid=[1, 2])
         Text(self._box, grid=[2, 2], text='Rate(msg/s)')
@@ -67,7 +70,7 @@ class CouplerBox:
         self._msg_out = Text(self._box, grid=[1, 3])
         Text(self._box, grid=[2, 3], text='Rate(msg/s)')
         self._msg_out_rate = Text(self._box, grid=[3, 3])
-        self._action = PushButton(self._box, grid=[0,4], command=self.action)
+        self._action = PushButton(self._box, grid=[0 ,4], command=self.action)
         self._refresh = PushButton(self._box, grid=[1, 4], command=self.refresh, text='Refresh')
 
     def set_coupler(self, coupler):
@@ -295,6 +298,35 @@ class DeviceBox:
         self._descr = Text(self._box, grid=[3, index], text=device.description)
 
 
+class MainMenu:
+
+    def __init__(self, parent):
+        self._parent = parent
+        self._system_window = None
+        self._mppt_window = None
+        self._menu = MenuBar(parent,
+                             toplevel=['File', 'Functions'],
+                             options=[
+                                [['Quit', self.quit]],
+                                [['System', self.system], ['MPPT', self.mppt]]
+                             ])
+
+    def quit(self):
+        pass
+
+    def system(self):
+        self._system_window.open()
+
+    def mppt(self):
+        pass
+
+    def set_system_window(self, window):
+        self._system_window = window
+
+    def set_mppt_window(self, window):
+        self._mppt_window = window
+
+
 def main():
     opts = Options(parser)
     server = "%s:%d" % (opts.address, opts.port)
@@ -307,7 +339,9 @@ def main():
 
     console = ConsoleClient(server)
     top = App(title="Navigation router control")
-
+    control_panel_window = ControlPanel(top, opts.address, opts.system)
+    menu = MainMenu(top)
+    menu.set_system_window(control_panel_window)
     server_box = ServerBox(top, server, console)
     coupler_wbox = Box(top, align='left', layout='grid')
     coupler_box = CouplerBox(coupler_wbox, [1, 0], console)
