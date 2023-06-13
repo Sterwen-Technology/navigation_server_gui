@@ -338,7 +338,7 @@ def main():
     _logger.setLevel(logging.INFO)
 
     console = ConsoleClient(server)
-    top = App(title="Navigation router control")
+    top = App(title="Navigation router control", width=800)
     control_panel_window = ControlPanel(top, opts.address, opts.system)
     menu = MainMenu(top)
     menu.set_system_window(control_panel_window)
