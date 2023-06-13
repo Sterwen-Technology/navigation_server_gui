@@ -10,6 +10,7 @@ sys.path.insert(0, "../../navigation_server/src")
 from guizero import App, ListBox, Text, Box, PushButton, MenuBar
 from navigation_clients.console_client import *
 from control_panel import ControlPanel
+from mppt_svr_window import MpptServerBox
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -27,6 +28,9 @@ def _parser():
     p.add_argument("-s", "--system", action="store", type=int,
                    default=4506,
                    help="System control agent port, default 4506")
+    p.add_argument("-mp", "--mppt", action="store", type=int,
+                   default=4505,
+                   help="MPPT server listening port, default 4505")
 
     return p
 
@@ -318,7 +322,7 @@ class MainMenu:
         self._system_window.open()
 
     def mppt(self):
-        pass
+        self._mppt_window.open()
 
     def set_system_window(self, window):
         self._system_window = window
@@ -340,8 +344,10 @@ def main():
     console = ConsoleClient(server)
     top = App(title="Navigation router control", width=800)
     control_panel_window = ControlPanel(top, opts.address, opts.system)
+    mppt_window = MpptServerBox(top, opts.address, opts.mppt)
     menu = MainMenu(top)
     menu.set_system_window(control_panel_window)
+    menu.set_mppt_window(mppt_window)
     server_box = ServerBox(top, server, console)
     coupler_wbox = Box(top, align='left', layout='grid')
     coupler_box = CouplerBox(coupler_wbox, [1, 0], console)
