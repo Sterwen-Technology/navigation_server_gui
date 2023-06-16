@@ -58,7 +58,7 @@ class MpptServerBox:
     def refresh_device(self):
         self.set_state('CONNECTED')
         self._product_id.clear()
-        self._proxy.append(self._proxy.product_id)
+        self._product_id.append(self._proxy.product_id)
         self._firmware.clear()
         self._firmware.append(self._proxy.firmware)
         self._state.clear()
@@ -70,7 +70,7 @@ class MpptServerBox:
         self._max_power.clear()
         self._max_power.append("%5.0f" % self._proxy.day_max_power)
         self._yield.clear()
-        self._yield.append("%5.0f" % self._proxy.day_power)
+        self._yield.append("%5.0f" % self._proxy.day_yield)
 
     def refresh_output(self):
         self._volt.clear()
