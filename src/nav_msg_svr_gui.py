@@ -200,11 +200,23 @@ class ServerBox:
         Text(self._devices_box, grid=[2, 0], text="Product Name")
         Text(self._devices_box, grid=[3, 0], text="Description")
         self._devices = self._server.get_devices()
-        index = 1
         self._devices_lines = []
+        self.fill_device()
+
+    def fill_device(self):
+        index = 1
         for dev in self._devices:
             self._devices_lines.append(DeviceBox(self._devices_box, index, dev))
             index += 1
+
+    def refresh_devices(self):
+        devices = self._server.get_devices()
+        if len(self._devices) == len(devices):
+            return
+        for db in self._devices_lines:
+            db.destroy()
+        self._devices_lines = []
+        self.fill_device()
 
     def set_coupler_widgets(self, coupler_box, coupler_list):
         self._coupler_list = coupler_list
@@ -262,6 +274,7 @@ class ServerBox:
             self._connected = True
             self.refresh_couplers()
 
+        self.refresh_devices()
         self._coupler_box.refresh()
         sub = self._proxy.get_sub_servers()
         for l in self._sub_server_lines:
@@ -300,6 +313,12 @@ class DeviceBox:
         self._mfg = Text(self._box, grid=[1, index], text=device.manufacturer_name)
         self._prod = Text(self._box, grid=[2, index], text=device.product_name)
         self._descr = Text(self._box, grid=[3, index], text=device.description)
+
+    def destroy(self):
+        self._addr.destroy()
+        self._mfg.destroy()
+        self._prod.destroy()
+        self._descr.destroy()
 
 
 class MainMenu:
