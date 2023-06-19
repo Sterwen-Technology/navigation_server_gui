@@ -95,7 +95,7 @@ class ServerBox:
         self._max_power.clear()
         self._max_power.append("%5.0f" % self._proxy.day_max_power)
         self._yield.clear()
-        self._yield.append("%5.0f" % self._proxy.day_power)
+        self._yield.append("%5.0f" % self._proxy.day_yield)
 
     def refresh_output(self):
         self._volt.clear()
@@ -128,7 +128,7 @@ def main():
     logformat = logging.Formatter("%(asctime)s | [%(levelname)s] %(message)s")
     loghandler.setFormatter(logformat)
     _logger.addHandler(loghandler)
-    _logger.setLevel(logging.DEBUG)
+    _logger.setLevel(logging.INFO)
 
     mppt_svr = MPPT_Client(opts)
     top = App(title="MPPT control")
