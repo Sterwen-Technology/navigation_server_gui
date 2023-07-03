@@ -211,11 +211,13 @@ class ServerBox:
 
     def refresh_devices(self):
         devices = self._server.get_devices()
+        _logger.info("Number of N2K devices in server %d / current %d" % (len(devices), len(self._devices)))
         if len(self._devices) == len(devices):
             return
         for db in self._devices_lines:
             db.destroy()
         self._devices_lines = []
+        self._devices = devices
         self.fill_device()
 
     def set_coupler_widgets(self, coupler_box, coupler_list):
