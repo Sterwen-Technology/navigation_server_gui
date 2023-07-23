@@ -76,6 +76,8 @@ class CouplerBox:
         self._msg_out_rate = Text(self._box, grid=[3, 3])
         self._action = PushButton(self._box, grid=[0 ,4], command=self.action)
         self._refresh = PushButton(self._box, grid=[1, 4], command=self.refresh, text='Refresh')
+        self._start_trace = PushButton(self._box, grid=[2,4], command=self.start_trace, text='Start Trace')
+        self._stop_trace = PushButton(self._box, grid=[3,4], command=self.stop_trace, text='Stop Trace')
 
     def set_coupler(self, coupler):
         self._coupler = coupler
@@ -129,6 +131,12 @@ class CouplerBox:
         self._disabled = True
         self._coupler = None
         self._box.disable()
+
+    def start_trace(self):
+        pass
+
+    def stop_trace(self):
+        pass
 
 
 class CouplerListBox:
