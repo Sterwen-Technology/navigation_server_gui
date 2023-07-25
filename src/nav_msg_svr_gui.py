@@ -7,7 +7,7 @@ import logging
 # sys.path.insert(0, "../../navigation_server/src/navigation_clients")
 sys.path.insert(0, "../../navigation_server/src")
 
-from guizero import App, ListBox, Text, Box, PushButton, MenuBar
+from guizero import App, ListBox, Text, Box, PushButton, MenuBar, Window
 from navigation_clients.console_client import *
 from control_panel import ControlPanel
 from mppt_svr_window import MpptServerBox
@@ -58,6 +58,7 @@ class CouplerBox:
         self._client = client
         self._coupler = None
         self._disabled = True
+        self._parent = parent
         self._box = Box(parent, grid=pos, layout='grid', visible=False)
         Text(self._box, grid=[0, 0], text='Name:')
         self._name = Text(self._box, grid=[1 ,0])
@@ -78,10 +79,17 @@ class CouplerBox:
         self._refresh = PushButton(self._box, grid=[1, 4], command=self.refresh, text='Refresh')
         self._start_trace = PushButton(self._box, grid=[2,4], command=self.start_trace, text='Start Trace')
         self._stop_trace = PushButton(self._box, grid=[3,4], command=self.stop_trace, text='Stop Trace')
+        self._details = PushButton(self._box, grid=[4,4], text='Details')
+        self._details_window = None
 
     def set_coupler(self, coupler):
         self._coupler = coupler
         self._disabled = False
+        if self._coupler.coupler_class == 'RawLogCoupler':
+            self._start_trace.hide()
+            self._stop_trace.hide()
+            self._details_window = LogControlWindow(self._parent, self._coupler, self._client)
+            self._details.update_command(self.open_details_window)
         self.display()
 
     def display(self):
@@ -133,10 +141,42 @@ class CouplerBox:
         self._box.disable()
 
     def start_trace(self):
-        pass
+        self._coupler.start_trace(self._client)
 
     def stop_trace(self):
-        pass
+        self._coupler.stop_trace(self._client)
+
+    def open_details_window(self):
+        # print("Coupler class:", self._coupler.coupler_class)
+        if self._details_window is not None:
+            self._details_window.open()
+
+
+class LogControlWindow:
+
+    def __init__(self, parent, coupler, client):
+        self._coupler = coupler
+        self._client = client
+        self._window = Window(parent, title='LogReplay Control')
+        self._window.hide()
+
+        self._box = Box(self._window, align='top', layout='grid')
+        Text(self._box, grid=[0, 0], text='Log file')
+        self._fn = Text(self._box, grid=[1, 0])
+        Text(self._box, grid=[0, 1], text='Start date')
+        self._sd = Text(self._box, grid=[1, 1])
+        Text(self._box, grid=[0, 2], text='End date')
+        self._ed = Text(self._box, grid=[1, 2])
+        Text(self._box, grid=[0, 3], text='Current replay time')
+        self._ct = Text(self._box, grid=[1, 3])
+
+    def open(self):
+        log_char = self._coupler.send_cmd(self._client, 'log_file_characteristics')
+        if log_char is not None:
+            self._fn.append(log_char['filename'])
+            self._sd.append(log_char['start_date'].isoformat())
+            self._ed.append(log_char['end_date'].isoformat())
+            self._window.show()
 
 
 class CouplerListBox:
