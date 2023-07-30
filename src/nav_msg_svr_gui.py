@@ -1,4 +1,4 @@
-
+import datetime
 import os
 import sys
 from argparse import ArgumentParser
@@ -7,10 +7,11 @@ import logging
 # sys.path.insert(0, "../../navigation_server/src/navigation_clients")
 sys.path.insert(0, "../../navigation_server/src")
 
-from guizero import App, ListBox, Text, Box, PushButton, MenuBar, Window
+from guizero import App, ListBox, Text, Box, PushButton, MenuBar, Window, TextBox
 from navigation_clients.console_client import *
 from control_panel import ControlPanel
 from mppt_svr_window import MpptServerBox
+from util_functions import format_date
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -75,11 +76,12 @@ class CouplerBox:
         self._msg_out = Text(self._box, grid=[1, 3])
         Text(self._box, grid=[2, 3], text='Rate(msg/s)')
         self._msg_out_rate = Text(self._box, grid=[3, 3])
-        self._action = PushButton(self._box, grid=[0 ,4], command=self.action)
-        self._refresh = PushButton(self._box, grid=[1, 4], command=self.refresh, text='Refresh')
-        self._start_trace = PushButton(self._box, grid=[2,4], command=self.start_trace, text='Start Trace')
-        self._stop_trace = PushButton(self._box, grid=[3,4], command=self.stop_trace, text='Stop Trace')
-        self._details = PushButton(self._box, grid=[4,4], text='Details')
+        self._action = PushButton(self._box, grid=[0, 4], command=self.action)
+        self._suspend_resume = PushButton(self._box, grid=[1, 4], command=self.action2)
+        self._refresh = PushButton(self._box, grid=[2, 4], command=self.refresh, text='Refresh')
+        self._start_trace = PushButton(self._box, grid=[3,4], command=self.start_trace, text='Start Trace')
+        self._stop_trace = PushButton(self._box, grid=[5,4], command=self.stop_trace, text='Stop Trace')
+        self._details = PushButton(self._box, grid=[5,4], text='Details')
         self._details_window = None
 
     def set_coupler(self, coupler):
@@ -109,10 +111,14 @@ class CouplerBox:
         self._msg_out.append(str(self._coupler.msg_out))
         self._msg_out_rate.clear()
         self._msg_out_rate.append("%5.2f" % self._coupler.output_rate)
-        if self._coupler.state == 'RUNNING':
-            self._action.text = 'Stop'
-        else:
+        if self._coupler.state == 'STOPPED':
             self._action.text = 'Start'
+        else:
+            self._action.text = 'Stop'
+        if self._coupler.state == 'SUSPENDED':
+            self._suspend_resume.text = 'Resume'
+        else:
+            self._suspend_resume.text = 'Suspend'
         self._box.visible = True
         self._box.enable()
 
@@ -133,6 +139,13 @@ class CouplerBox:
             self._coupler.stop(self._client)
         else:
             self._coupler.start(self._client)
+        self.refresh()
+
+    def action2(self):
+        if self._suspend_resume.text == 'Suspend':
+            self._coupler.suspend(self._client)
+        else:
+            self._coupler.resume(self._client)
         self.refresh()
 
     def disable(self):
@@ -161,22 +174,72 @@ class LogControlWindow:
         self._window.hide()
 
         self._box = Box(self._window, align='top', layout='grid')
-        Text(self._box, grid=[0, 0], text='Log file')
-        self._fn = Text(self._box, grid=[1, 0])
-        Text(self._box, grid=[0, 1], text='Start date')
-        self._sd = Text(self._box, grid=[1, 1])
-        Text(self._box, grid=[0, 2], text='End date')
-        self._ed = Text(self._box, grid=[1, 2])
-        Text(self._box, grid=[0, 3], text='Current replay time')
-        self._ct = Text(self._box, grid=[1, 3])
+        self._box2 = Box(self._box, layout='grid', grid=[0, 0])
+        Text(self._box2, grid=[0, 0], text='Log file')
+        self._fn = Text(self._box2, grid=[1, 0])
+        self._box3 = Box(self._box, layout='grid', grid=[0, 1])
+        Text(self._box3, grid=[0, 0], text='Start date')
+        self._sd = Text(self._box3, grid=[1, 0])
+        self._box4 = Box(self._box, layout='grid', grid=[0, 2])
+        Text(self._box4, grid=[0, 0], text='End date')
+        self._ed = Text(self._box4, grid=[1, 0])
+        self._box5 = Box(self._box, layout='grid', grid=[0, 3])
+        Text(self._box5, grid=[0, 0], text='Current replay time')
+        self._ct = Text(self._box5, grid=[1, 0])
+        self._current_time = None
+        self._box6 = Box(self._box, layout='grid', grid=[0, 4])
+        Text(self._box6, grid=[0, 0], text='Set replay time')
+        self._set_hour = TextBox(self._box6, grid=[1, 0], width=2)
+        Text(self._box6, grid=[2, 0], text=':')
+        self._set_mn = TextBox(self._box6, grid=[3, 0], width=2)
+        Text(self._box6, grid=[4, 0], text=':')
+        self._set_sec = TextBox(self._box6, grid=[5, 0], width=2)
+        self._set_pb = PushButton(self._box6, grid=[6, 0], text='>>', command=self.copy_date)
+        self._apply = PushButton(self._box6, grid=[7, 0], text='Apply', command=self.move_date)
 
     def open(self):
         log_char = self._coupler.send_cmd(self._client, 'log_file_characteristics')
         if log_char is not None:
             self._fn.append(log_char['filename'])
-            self._sd.append(log_char['start_date'].isoformat())
-            self._ed.append(log_char['end_date'].isoformat())
+            self._sd.append(format_date(log_char['start_date']))
+            self._ed.append(format_date(log_char['end_date']))
             self._window.show()
+            self._box.repeat(10000, self.refresh)
+            self.refresh()
+
+    def refresh(self):
+        current_date = self._coupler.send_cmd(self._client, 'current_log_date')
+        if current_date is None:
+            return
+        self._current_time = current_date['current_date']
+        self._ct.clear()
+        self._ct.append(format_date(self._current_time))
+
+    def copy_date(self):
+        if self._current_time is not None:
+            self._set_hour.value = str(self._current_time.hour)
+            self._set_mn.value = str(self._current_time.minute)
+            self._set_sec.value = str(self._current_time.second)
+
+    def move_date(self):
+        try:
+            h = int(self._set_hour.value)
+            m = int(self._set_mn.value)
+            s = int(self._set_sec.value)
+        except ValueError:
+            return
+        print(h,m,s)
+        try:
+            new_date = datetime.datetime(
+                self._current_time.year,
+                self._current_time.month,
+                self._current_time.day,
+                h, m, s
+            )
+        except ValueError:
+            return
+        args = {'target_date': new_date}
+        self._coupler.send_cmd(self._client, 'move_to_date', args)
 
 
 class CouplerListBox:
