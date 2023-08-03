@@ -369,13 +369,14 @@ class ServerBox:
         try:
             self._proxy = self._server.server_status()
         except ConsoleAccessException:
-            self._status.clear()
-            self._start_time.clear()
-            self._status.append('Stopped')
             self.set_state('DISCONNECTED')
-            self._coupler_list.clear_list()
-            self._coupler_list.clear_list()
             self._connected = False
+            if self._finalized:
+                self._status.append('Stopped')
+                self._status.clear()
+                self._start_time.clear()
+                self._coupler_list.clear_list()
+                self._coupler_list.clear_list()
             return
         if not self._connected:
             if not self._finalized:
@@ -448,7 +449,7 @@ class MainMenu:
                              ])
 
     def quit(self):
-        pass
+        sys.exit(0)
 
     def system(self):
         self._system_window.open()
