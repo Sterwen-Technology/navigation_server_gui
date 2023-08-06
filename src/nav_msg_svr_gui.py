@@ -76,12 +76,16 @@ class CouplerBox:
         self._msg_out = Text(self._box, grid=[1, 3])
         Text(self._box, grid=[2, 3], text='Rate(msg/s)')
         self._msg_out_rate = Text(self._box, grid=[3, 3])
+        Text(self._box, grid=[4, 2], text='Raw input count')
+        self._raw_count = Text(self._box, grid=[5, 2])
+        Text(self._box, grid=[6, 2], text="Raw rate (msg/s)")
+        self._raw_rate = Text(self._box, grid=[6, 2])
         self._action = PushButton(self._box, grid=[0, 4], command=self.action)
         self._suspend_resume = PushButton(self._box, grid=[1, 4], command=self.action2)
         self._refresh = PushButton(self._box, grid=[2, 4], command=self.refresh, text='Refresh')
-        self._start_trace = PushButton(self._box, grid=[3,4], command=self.start_trace, text='Start Trace')
-        self._stop_trace = PushButton(self._box, grid=[5,4], command=self.stop_trace, text='Stop Trace')
-        self._details = PushButton(self._box, grid=[5,4], text='Details')
+        self._start_trace = PushButton(self._box, grid=[3, 4], command=self.start_trace, text='Start Trace')
+        self._stop_trace = PushButton(self._box, grid=[4, 4], command=self.stop_trace, text='Stop Trace')
+        self._details = PushButton(self._box, grid=[5, 4], text='Details')
         self._details_window = None
 
     def set_coupler(self, coupler):
@@ -111,6 +115,10 @@ class CouplerBox:
         self._msg_out.append(str(self._coupler.msg_out))
         self._msg_out_rate.clear()
         self._msg_out_rate.append("%5.2f" % self._coupler.output_rate)
+        self._raw_count.clear()
+        self._raw_count.append(self._coupler.msg_raw)
+        self._raw_rate.clear()
+        self._raw_rate.append("%6.2f" % self._coupler.input_rate_raw)
         if self._coupler.state == 'STOPPED':
             self._action.text = 'Start'
         else:
@@ -196,6 +204,7 @@ class LogControlWindow:
         self._set_sec = TextBox(self._box6, grid=[5, 0], width=2)
         self._set_pb = PushButton(self._box6, grid=[6, 0], text='>>', command=self.copy_date)
         self._apply = PushButton(self._box6, grid=[7, 0], text='Apply', command=self.move_date)
+        self._restart = PushButton(self._box6, grid=[8,0], text="Restart", command=self.restart)
 
     def open(self):
         log_char = self._coupler.send_cmd(self._client, 'log_file_characteristics')
@@ -208,7 +217,13 @@ class LogControlWindow:
             self.refresh()
 
     def refresh(self):
-        current_date = self._coupler.send_cmd(self._client, 'current_log_date')
+        try:
+            current_date = self._coupler.send_cmd(self._client, 'current_log_date')
+        except ConsoleAccessException:
+            self._window.hide()
+            self._box.cancel(self.refresh)
+            return
+
         if current_date is None:
             return
         self._current_time = current_date['current_date']
@@ -240,6 +255,9 @@ class LogControlWindow:
             return
         args = {'target_date': new_date}
         self._coupler.send_cmd(self._client, 'move_to_date', args)
+
+    def restart(self):
+        self._coupler.send_cmd(self._client, 'restart')
 
 
 class CouplerListBox:
@@ -277,6 +295,7 @@ class ServerBox:
         Text(self._box, grid=[0, 0], text="Server@")
         self._addr_text = Text(self._box, grid=[1, 0], text=address)
         self._state_text = Text(self._box, grid=[2, 0])
+        self._hostname_text = Text(self._box, grid=[3, 0])
         self._connected = False
         self._finalized = False
         try:
@@ -292,6 +311,9 @@ class ServerBox:
         Text(self._box, grid=[0, 1], text=self._proxy.version)
         Text(self._box, grid=[1, 1], text='Start time')
         self._start_time = Text(self._box, grid=[2, 1], text=self._proxy.start_time)
+        self._hostname_text.text = self._proxy.hostname
+        self.set_state('CONNECTED')
+        self.set_hostname()
         PushButton(self._box, grid=[0, 2], text='Stop', command=self.stop_server)
         self._status = Text(self._box, grid=[1, 2], text='Running')
         self._sub_servers_box = Box(self._parent, align='top', layout='grid')
@@ -323,7 +345,11 @@ class ServerBox:
     def refresh_devices(self):
         devices = self._server.get_devices()
         _logger.info("Number of N2K devices in server %d / current %d" % (len(devices), len(self._devices)))
-        if len(self._devices) == len(devices):
+        change_flag = False
+        for dev in devices:
+            if dev.changed:
+                change_flag = True
+        if not change_flag:
             return
         for db in self._devices_lines:
             db.destroy()
@@ -353,6 +379,10 @@ class ServerBox:
     def set_state(self, state):
         self._state_text.clear()
         self._state_text.append(state)
+
+    def set_hostname(self):
+        self._hostname_text.clear()
+        self._hostname_text.append(self._proxy.hostname)
 
     def set_status(self, status):
         self._status.clear()
@@ -384,6 +414,7 @@ class ServerBox:
             self.set_state('CONNECTED')
             self.set_status('Running')
             self._start_time.append(self._proxy.start_time)
+            self.set_hostname()
             # refresh the couplers
             self._connected = True
             self.refresh_couplers()
@@ -475,7 +506,7 @@ def main():
     _logger.setLevel(logging.INFO)
 
     console = ConsoleClient(server)
-    top = App(title="Navigation router control", width=800)
+    top = App(title="Navigation router control", width=900, height=640)
     control_panel_window = ControlPanel(top, opts.address, opts.system)
     mppt_window = MpptServerBox(top, opts.address, opts.mppt)
     menu = MainMenu(top)
