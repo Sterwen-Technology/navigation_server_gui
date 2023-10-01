@@ -334,8 +334,8 @@ class ServerBox:
         Text(self._devices_box, grid=[0, 0], text="Address")
         Text(self._devices_box, grid=[1, 0], text="Manufacturer")
         Text(self._devices_box, grid=[2, 0], text="Product Name")
-        Text(self._devices_box, grid=[3, 0], text="ISO System Name")
-        Text(self._devices_box, grid=[4, 0], text="Description")
+        # Text(self._devices_box, grid=[3, 0], text="ISO System Name")
+        Text(self._devices_box, grid=[3, 0], text="Description")
         self._devices = self._server.get_devices()
         self._devices_lines = []
         self.fill_device()
@@ -461,8 +461,9 @@ class DeviceBox:
         self._addr = Text(self._box, grid=[0, index], text=device.address)
         self._mfg = Text(self._box, grid=[1, index], text=device.manufacturer_name)
         self._prod = Text(self._box, grid=[2, index], text=device.product_name)
-        self._iso_name = Text(self._box, grid=[3, index], text=device.iso_name)
-        self._descr = Text(self._box, grid=[4, index], text=device.description)
+        # self._iso_name = Text(self._box, grid=[3, index], text=device.iso_name)
+        self._descr = Text(self._box, grid=[3, index], text=device.description)
+        self._details = PushButton(self._box, grid=[4, index], text="Details")
 
     def destroy(self):
         self._addr.destroy()
