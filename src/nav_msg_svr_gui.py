@@ -246,7 +246,7 @@ class LogControlWindow:
             s = int(self._set_sec.value)
         except ValueError:
             return
-        print(h,m,s)
+        # print(h,m,s)
         try:
             new_date = datetime.datetime(
                 self._current_time.year,
