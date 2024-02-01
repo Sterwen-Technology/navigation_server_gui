@@ -11,7 +11,7 @@ from guizero import App, ListBox, Text, Box, PushButton, MenuBar, Window, TextBo
 from navigation_clients.console_client import *
 from control_panel import ControlPanel
 from mppt_svr_window import MpptServerBox
-from util_functions import format_date
+from util_functions import format_date, format_timestamp
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -335,7 +335,7 @@ class ServerBox:
         Text(self._devices_box, grid=[1, 0], text="Manufacturer")
         Text(self._devices_box, grid=[2, 0], text="Product Name")
         # Text(self._devices_box, grid=[3, 0], text="ISO System Name")
-        Text(self._devices_box, grid=[3, 0], text="Description")
+        Text(self._devices_box, grid=[3, 0], text="Last seen ")
         self._devices = self._server.get_devices()
         self._devices_lines = []
         self.fill_device()
@@ -462,7 +462,7 @@ class DeviceBox:
         self._mfg = Text(self._box, grid=[1, index], text=device.manufacturer_name)
         self._prod = Text(self._box, grid=[2, index], text=device.product_name)
         # self._iso_name = Text(self._box, grid=[3, index], text=device.iso_name)
-        self._descr = Text(self._box, grid=[3, index], text=device.description)
+        self._descr = Text(self._box, grid=[3, index], text=format_timestamp(device.last_time_seen))
         self._details = PushButton(self._box, grid=[4, index], text="Details")
 
     def destroy(self):
