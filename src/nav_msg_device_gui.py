@@ -17,5 +17,6 @@ class DeviceDetailsWindow:
         self._client = client
         self._window = Window(parent, title=f'Details for device address {device.address}')
         self._window.hide()
+        
 
 

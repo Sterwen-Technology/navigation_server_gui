@@ -23,6 +23,7 @@ class ControlPanel:
         self._top = Window(parent, title="Remote Control Panel", width=1100)
         self._top.hide()
         # now create all the buttons
+        self._status = Text(self._top, align='top')
         box = Box(self._top, layout='grid')
         # first row => global system
         Text(box, grid=[0,0], text="System control")
@@ -36,7 +37,12 @@ class ControlPanel:
 
     def open(self):
         _logger.info("Open system control window")
-        res = self._client.send_cmd_single_resp('uptime')
+        try:
+            res = self._client.send_cmd_single_resp('uptime')
+        except GrpcAccessException:
+            return
+        self._status.clear()
+        self._status.append(f"Connect on agent running {res}")
         print(res)
         self._top.show()
 
