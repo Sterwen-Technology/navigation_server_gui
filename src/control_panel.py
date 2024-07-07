@@ -26,12 +26,13 @@ class ControlPanel:
         self._status = Text(self._top, align='top')
         box = Box(self._top, layout='grid')
         # first row => global system
-        Text(box, grid=[0,0], text="System control")
-        PushButton(box, grid=[1,0], text="Stop", command=self.stop_system_request)
-        PushButton(box, grid=[2,0], text="Restart", command=self.restart_system_request)
+        Text(box, grid=[0, 0], text="System control")
+        PushButton(box, grid=[1, 0], text="Stop", command=self.stop_system_request)
+        PushButton(box, grid=[2, 0], text="Restart", command=self.restart_system_request)
         status = ListBox(self._top, align='left', width='fill')
         ServiceControl(box, 1, self._client, 'navigation', "Messages Server", status)
         ServiceControl(box, 2, self._client, "vedirect", "Victron MPPT", status)
+        NetworkControl(box, 3, self._client, "wlan0", status)
 
         PushButton(self._top, align='right', text='Close', command=self.close)
 
@@ -96,6 +97,29 @@ class ServiceControl:
             lines = self._client.systemd_cmd(cmd, self._service)
             for l in lines:
                 self._status_text.append(l)
+        except GrpcAccessException:
+            pass
+
+
+class NetworkControl:
+
+    def __init__(self, parent, line, client, interface, status_text):
+        self._client = client
+        self._interface = interface
+        self._status_text = status_text
+        Text(parent, grid=[0, line], text=interface)
+        PushButton(parent, grid=[1, line], text='Status', command=self.status)
+        PushButton(parent, grid=[2, line], text='Reset', command=self.reset)
+
+    def status(self):
+        _logger.info("Device status not implemented")
+
+    def reset(self):
+        _logger.info(f"Sending reset for {self._interface}")
+        self._status_text.clear()
+        try:
+            line = self._client.network_cmd('reset_device', self._interface)
+            self._status_text.append(line)
         except GrpcAccessException:
             pass
 
