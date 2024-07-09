@@ -7,7 +7,7 @@ from guizero import Window, Box, Text, PushButton, ListBox
 sys.path.insert(0, "../../navigation_server/src")
 
 from navigation_clients.agent_client import AgentClient
-from utilities.protobuf_utilities import GrpcAccessException
+from router_common.protobuf_utilities import GrpcAccessException
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -31,7 +31,7 @@ class ControlPanel:
         PushButton(box, grid=[2, 0], text="Restart", command=self.restart_system_request)
         status = ListBox(self._top, align='left', width='fill')
         ServiceControl(box, 1, self._client, 'navigation', "Messages Server", status)
-        ServiceControl(box, 2, self._client, "vedirect", "Victron MPPT", status)
+        ServiceControl(box, 2, self._client, "energy", "Energy Management", status)
         NetworkControl(box, 3, self._client, "wlan0", status)
 
         PushButton(self._top, align='right', text='Close', command=self.close)

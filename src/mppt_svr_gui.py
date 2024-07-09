@@ -9,7 +9,7 @@ import logging
 sys.path.insert(0, "../../navigation_server/src")
 
 from guizero import App, ListBox, Text, Box, PushButton, Drawing
-from victron_mppt.mppt_client import *
+from navigation_clients.mppt_client import *
 
 
 _logger = logging.getLogger("MPPTDataClient")
