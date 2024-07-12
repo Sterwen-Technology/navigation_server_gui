@@ -205,6 +205,11 @@ class LogControlWindow:
         self._set_pb = PushButton(self._box6, grid=[6, 0], text='>>', command=self.copy_date)
         self._apply = PushButton(self._box6, grid=[7, 0], text='Apply', command=self.move_date)
         self._restart = PushButton(self._box6, grid=[8,0], text="Restart", command=self.restart)
+        self._box7 = Box(self._box, layout='grid', grid=[0, 5])
+        Text(self._box7, grid=[0, 0], text='Filter SA')
+        self._sa = TextBox(self._box7, grid=[1, 0], width=3)
+        self._remove = PushButton(self._box7, grid=[2, 0], text='Remove', command=self.remove_sa)
+        self._add = PushButton(self._box7, grid=[3, 0], text='Add', command=self.add_sa)
 
     def open(self):
         log_char = self._coupler.send_cmd(self._client, 'log_file_characteristics')
@@ -262,6 +267,15 @@ class LogControlWindow:
     def restart(self):
         self._coupler.send_cmd(self._client, 'restart')
 
+    def remove_sa(self):
+        sa = int(self._sa.value)
+        args = {'address': sa}
+        self._coupler.send_cmd(self._client, 'remove_sa', args)
+
+    def add_sa(self):
+        sa = int(self._sa.value)
+        args = {'address': sa}
+        self._coupler.send_cmd(self._client, 'add_sa', args)
 
 class CouplerListBox:
 
@@ -349,10 +363,13 @@ class ServerBox:
     def refresh_devices(self):
         devices = self._server.get_devices()
         _logger.info("Number of N2K devices in server %d / current %d" % (len(devices), len(self._devices)))
-        change_flag = False
-        for dev in devices:
-            if dev.changed:
-                change_flag = True
+        if len(devices) == len(self._devices):
+            change_flag = False
+            for dev in devices:
+                if dev.changed:
+                    change_flag = True
+        else:
+            change_flag = True
         if not change_flag:
             return
         for db in self._devices_lines:
