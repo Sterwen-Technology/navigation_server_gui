@@ -12,6 +12,7 @@ from navigation_clients.console_client import *
 from control_panel import ControlPanel
 from mppt_svr_window import MpptServerBox
 from util_functions import format_date, format_timestamp
+from nav_data import DataWindow
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -32,6 +33,8 @@ def _parser():
     p.add_argument("-mp", "--mppt", action="store", type=int,
                    default=4505,
                    help="MPPT server listening port, default 4505")
+    p.add_argument('-dp', '--data', action='store', type=int, default=4508,
+                   help="Data server port, default 4508")
 
     return p
 
@@ -495,11 +498,12 @@ class MainMenu:
         self._parent = parent
         self._system_window = None
         self._mppt_window = None
+        self._data_window = None
         self._menu = MenuBar(parent,
                              toplevel=['File', 'Functions'],
                              options=[
                                 [['Quit', self.quit]],
-                                [['System', self.system], ['MPPT', self.mppt]]
+                                [['System', self.system], ['MPPT', self.mppt], ['DATA', self.data]]
                              ])
 
     def quit(self):
@@ -517,6 +521,12 @@ class MainMenu:
     def set_mppt_window(self, window):
         self._mppt_window = window
 
+    def data(self):
+        self._data_window.open()
+
+    def set_data_window(self, window):
+        self._data_window = window
+
 
 def main():
     opts = Options(parser)
@@ -532,9 +542,11 @@ def main():
     top = App(title="Navigation router control", width=900, height=640)
     control_panel_window = ControlPanel(top, opts.address, opts.system)
     mppt_window = MpptServerBox(top, opts.address, opts.mppt)
+    data_window = DataWindow(top, opts.address, opts.data)
     menu = MainMenu(top)
     menu.set_system_window(control_panel_window)
     menu.set_mppt_window(mppt_window)
+    menu.set_data_window(data_window)
     server_box = ServerBox(top, server, console)
     coupler_wbox = Box(top, align='left', layout='grid')
     coupler_box = CouplerBox(coupler_wbox, [1, 0], console)
