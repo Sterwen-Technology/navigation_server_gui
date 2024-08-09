@@ -490,6 +490,7 @@ class DeviceBox:
         self._mfg.destroy()
         self._prod.destroy()
         self._descr.destroy()
+        self._details.destroy()
 
 
 class MainMenu:

@@ -57,8 +57,8 @@ class DataWindow:
             self._total_hours.clear()
             return
         if engine_data is not None:
-            print(f"state {engine_data.state},at {engine_data.speed}rpm, hours:{engine_data.total_hours}")
-            print(f"Last start {engine_data.last_start_time} - Last stop {engine_data.last_stop_time}")
+            # print(f"state {engine_data.state},at {engine_data.speed}rpm, hours:{engine_data.total_hours}")
+            # print(f"Last start {engine_data.last_start_time} - Last stop {engine_data.last_stop_time}")
             try:
                 engine_events = self._engine_client.get_events(0)
             except GrpcAccessException:
@@ -92,6 +92,8 @@ class DataWindow:
             self._last_start_time.append(engine_data.last_start_time)
             self._last_stop_time.append(engine_data.last_stop_time)
             self._events_list.clear()
+            engine_events.sort(key=lambda x: x.timestamp, reverse=True)
+            # sort the events
             for ev in engine_events:
                 ev_date = datetime.datetime.fromisoformat(ev.timestamp)
                 self._events_list.append(f"{format_date(ev_date)} - {ev.total_hours:4.1f} : {ev.previous_state} => {ev.current_state}")
