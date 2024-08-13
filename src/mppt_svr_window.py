@@ -8,7 +8,7 @@ import logging
 sys.path.insert(0, "../../navigation_server/src")
 
 from guizero import App, Window, Text, Box, PushButton, Drawing
-from navigation_clients.mppt_client import *
+from navigation_clients.energy_client import *
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -50,6 +50,10 @@ class MpptServerBox:
         Text(self._box, grid=[4, 5], text="Power (W)")
         self._power = Text(self._box, grid=[5, 5])
         self._output = None
+        Text(self._window, align='top', text='Solar panel power trend in W - evolution over the last 5mn')
+        self._trend = Drawing(self._window, align='top', height=100, width='fill')
+        self._trend.bg = 'blue'
+        self._trend_values = None
 
     def set_state(self, state):
         self._state_text.clear()
@@ -79,6 +83,18 @@ class MpptServerBox:
         self._amp.append("%5.2f" % self._output.current)
         self._power.clear()
         self._power.append("%3.0f" % self._output.panel_power)
+        # now draw the trend
+        d_width = self._window.width
+        h_step = int(d_width / 30)
+        d_height = 100
+        h_coef = d_height/200.0
+        pos = 0
+        print(f"Number of buckets in trend {self._trend_values.nb_values} interval {self._trend_values.interval}")
+        self._trend.clear()
+        for val in self._trend_values.values:
+            h = val.panel_power * h_coef
+            self._trend.rectangle(pos, d_height, pos + h_step - 1, d_height - h, color='yellow')
+            pos += h_step
 
     def get_device(self):
         self._proxy = self._server.getDeviceInfo()
@@ -88,6 +104,7 @@ class MpptServerBox:
     def get_output(self):
         self._output = self._server.getOutput()
         if self._output is not None:
+            self._trend_values = self._server.getTrend()
             self.refresh_output()
 
     def set_refresh_timers(self):
