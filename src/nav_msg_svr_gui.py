@@ -94,7 +94,8 @@ class CouplerBox:
     def set_coupler(self, coupler):
         self._coupler = coupler
         self._disabled = False
-        if self._coupler.coupler_class == 'RawLogCoupler':
+        print(self._coupler.coupler_class)
+        if self._coupler.coupler_class in ('RawLogCoupler', 'TransparentCanLogCoupler'):
             self._start_trace.hide()
             self._stop_trace.hide()
             self._details_window = LogControlWindow(self._parent, self._coupler, self._client)
@@ -346,7 +347,9 @@ class ServerBox:
         for ss in self._proxy.sub_servers():
             self._sub_server_lines.append(SubServerBox(self._sub_servers_box, index, ss))
             index += 1
-        Text(self._parent, align='top', text="NMEA2000 Devices")
+        devices_head = Box(self._parent, align='top')
+        Text(devices_head, align='left', text="NMEA2000 Devices")
+        PushButton(devices_head, align='right', text='Refresh list', command=self.force_refresh_devices)
         self._devices_box = Box(self._parent, align='top', layout='grid')
         Text(self._devices_box, grid=[0, 0], text="Address")
         Text(self._devices_box, grid=[1, 0], text="Manufacturer")
@@ -363,8 +366,8 @@ class ServerBox:
             self._devices_lines.append(DeviceBox(self._devices_box, index, dev))
             index += 1
 
-    def refresh_devices(self):
-        devices = self._server.get_devices()
+    def refresh_devices(self, command=None):
+        devices = self._server.get_devices(command)
         _logger.info("Number of N2K devices in server %d / current %d" % (len(devices), len(self._devices)))
         if len(devices) == len(self._devices):
             change_flag = False
@@ -380,6 +383,9 @@ class ServerBox:
         self._devices_lines = []
         self._devices = devices
         self.fill_device()
+
+    def force_refresh_devices(self):
+        self.refresh_devices('poll')
 
     def set_coupler_widgets(self, coupler_box, coupler_list):
         self._coupler_list = coupler_list
