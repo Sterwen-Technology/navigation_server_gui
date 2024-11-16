@@ -5,14 +5,14 @@ description = "Remote control GUI for navigation message sever"
 authors = ["Laurent Carré"]
 license = "Eclipse 2.0"
 readme = "README.md"
-
+packages = [
+    {include = "src"},
+]
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.12"
 guizero = "^1.5.0"
-grpcio = "^1.62.1"
-protobuf = "^4.25.3"
-matplotlib = "^3.8.3"
-
+grpcio = "^1.66.1"
+protobuf = "^5.27.3"
 
 [build-system]
 requires = ["poetry-core"]
