@@ -75,7 +75,7 @@ class DataWindow:
             self._state.clear()
             self._state.append(engine_data.state)
             self._total_hours.clear()
-            self._total_hours.append("%6.1f" % engine_data.total_hours)
+            self._total_hours.append("%6.1f" % engine_data.total_hours / 3600.0)
             self._temperature.clear()
             self._speed.clear()
             self._voltage.clear()
@@ -84,7 +84,7 @@ class DataWindow:
                 self._speed.append('----')
                 self._voltage.append('--.--')
             else:
-                self._temperature.append('%3.0f' % engine_data.temperature)
+                self._temperature.append('%3.0f' % engine_data.temperature - 273.16)
                 self._speed.append('%4.0f' % engine_data.speed)
                 self._voltage.append('%5.2f' % engine_data.alternator_voltage)
             self._last_start_time.clear()
