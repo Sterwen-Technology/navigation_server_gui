@@ -7,7 +7,7 @@ license = "Eclipse 2.0"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.12"
 guizero = "^1.5.0"
 grpcio = "^1.62.1"
 protobuf = "^5.27"
