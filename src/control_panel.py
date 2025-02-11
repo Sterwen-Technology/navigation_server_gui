@@ -4,7 +4,7 @@ import sys
 from guizero import Window, Box, Text, PushButton, ListBox
 
 
-sys.path.insert(0, "../../navigation_server/src")
+sys.path.insert(0, "../../navigation_server/navigation_server")
 
 from navigation_clients.agent_client import AgentClient
 from router_common.protobuf_utilities import GrpcAccessException

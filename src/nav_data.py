@@ -3,7 +3,7 @@ import sys
 import logging
 
 # sys.path.insert(0, "../../navigation_server/src/navigation_clients")
-sys.path.insert(0, "../../navigation_server/src")
+sys.path.insert(0, "../../navigation_server/navigation_server")
 
 from guizero import Window, Text, Box, PushButton, ListBox
 from util_functions import format_date

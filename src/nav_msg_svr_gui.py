@@ -5,10 +5,10 @@ from argparse import ArgumentParser
 import logging
 
 # sys.path.insert(0, "../../navigation_server/src/navigation_clients")
-sys.path.insert(0, "../../navigation_server/src")
+sys.path.insert(0, "../../navigation_server/")
 
 from guizero import App, ListBox, Text, Box, PushButton, MenuBar, Window, TextBox
-from navigation_clients.console_client import *
+from navigation_server.navigation_clients import *
 from control_panel import ControlPanel
 from mppt_svr_window import MpptServerBox
 from util_functions import format_date, format_timestamp
@@ -337,12 +337,21 @@ class ServerBox:
         self.set_hostname()
         PushButton(self._box, grid=[0, 2], text='Stop', command=self.stop_server)
         self._status = Text(self._box, grid=[1, 2], text='Running')
-        self._sub_servers_box = Box(self._parent, align='top', layout='grid')
+        # New fields
+        Text(self._box, grid=[0,3], text="Settings:")
+        Text(self._box, grid=[0,4], text="Server name:")
+        Text(self._box, grid=[2,4], text="Purpose:")
+        if self._proxy.settings is not None:
+            self._settings = Text(self._box, grid=[1, 3], text=self._proxy.settings)
+            self._server_name = Text(self._box, grid=[1,4], text=self._proxy.name)
+            self._purpose = Text(self._box, grid=[3,4], text=self._proxy.purpose)
+
+        self._sub_servers_box = Box(self._parent, align='top', layout='grid', border=1)
         index = 1
-        Text(self._sub_servers_box, grid=[0, 0], text="Sub server name")
-        Text(self._sub_servers_box, grid=[1, 0], text="Port")
-        Text(self._sub_servers_box, grid=[2, 0], text="Type")
-        Text(self._sub_servers_box, grid=[3, 0], text="Connections")
+        Text(self._sub_servers_box, grid=[0, 0], text="Sub server name", bold=True)
+        Text(self._sub_servers_box, grid=[1, 0], text="Port", bold=True)
+        Text(self._sub_servers_box, grid=[2, 0], text="Type", bold=True)
+        Text(self._sub_servers_box, grid=[3, 0], text="Connections", bold=True)
         self._sub_server_lines = []
         for ss in self._proxy.sub_servers():
             self._sub_server_lines.append(SubServerBox(self._sub_servers_box, index, ss))

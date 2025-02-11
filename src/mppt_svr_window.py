@@ -5,7 +5,7 @@ import sys
 import logging
 
 # sys.path.insert(0, "../../navigation_server/src/navigation_clients")
-sys.path.insert(0, "../../navigation_server/src")
+sys.path.insert(0, "../../navigation_server/navigation_server")
 
 from guizero import App, Window, Text, Box, PushButton, Drawing
 from navigation_clients.energy_client import *
