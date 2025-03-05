@@ -22,6 +22,7 @@ class MpptServerBox:
         self._window = Window(parent, title="MPPT control", width=700)
         self._window.hide()
         self._proxy = None
+        self._connected = False
 
         self._box = Box(self._window, align='top', layout='grid')
         Text(self._box, grid=[0, 0], text="Server@")
@@ -97,9 +98,11 @@ class MpptServerBox:
             pos += h_step
 
     def get_device(self):
-        self._proxy = self._server.getDeviceInfo()
-        if self._proxy is not None:
+        try:
+            self._proxy = self._server.getDeviceInfo()
             self.refresh_device()
+        except GrpcAccessException:
+            pass
 
     def get_output(self):
         self._output = self._server.getOutput()
@@ -109,20 +112,24 @@ class MpptServerBox:
 
     def set_refresh_timers(self):
         self._box.repeat(20000, self.get_device)
-        self._box.repeat(2000, self.get_output)
+        if self._connected:
+            self._box.repeat(2000, self.get_output)
 
     def open(self):
-        resp = self._server.server_status()
-        if resp is not None:
+        try:
+            resp = self._server.server_status()
             self.set_state('CONNECTED')
+            self._connected = True
             self.get_device()
             self.get_output()
-        else:
+        except GrpcAccessException:
             self.set_state('DISCONNECTED')
+            self._connected = False
         self._window.show()
         self.set_refresh_timers()
 
     def close(self):
         self._window.hide()
-        self._box.cancel(self.get_output)
+        if self._connected:
+            self._box.cancel(self.get_output)
         self._box.cancel(self.get_device)

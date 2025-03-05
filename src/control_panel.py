@@ -32,12 +32,15 @@ class ControlPanel:
         status = ListBox(self._top, align='left', width='fill')
         ServiceControl(box, 1, self._client, 'navigation', "Messages Server", status)
         ServiceControl(box, 2, self._client, "energy", "Energy Management", status)
-        NetworkControl(box, 3, self._client, "wlan0", status)
+        ServiceControl(box, 3, self._client, "navigation_data", "Navigation Data", status)
+        NetworkControl(box, 4, self._client, "wlan0", status)
 
         PushButton(self._top, align='right', text='Close', command=self.close)
 
     def open(self):
         _logger.info("Open system control window")
+        if self._client.state == AgentClient.NOT_CONNECTED:
+            self._client.connect()
         try:
             res = self._client.send_cmd_single_resp('uptime')
         except GrpcAccessException:

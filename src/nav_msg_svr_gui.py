@@ -428,7 +428,10 @@ class ServerBox:
         self._status.append(status)
 
     def stop_server(self):
-        self._server.server_cmd('stop')
+        try:
+            self._server.server_cmd('stop')
+        except ConsoleAccessException:
+            pass
         self.set_state('DISCONNECTED')
         self._connected = False
         self._coupler_list.clear_list()

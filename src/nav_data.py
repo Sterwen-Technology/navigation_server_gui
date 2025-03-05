@@ -96,7 +96,7 @@ class DataWindow:
             # sort the events
             for ev in engine_events:
                 ev_date = datetime.datetime.fromisoformat(ev.timestamp)
-                self._events_list.append(f"{format_date(ev_date)} - {ev.total_hours:4.1f} : {ev.previous_state} => {ev.current_state}")
+                self._events_list.append(f"{format_date(ev_date)} - hours:{ev.total_hours / 3600.:4.1f} : {ev.previous_state} => {ev.current_state}")
         else:
             self._state.clear()
             self._total_hours.clear()
