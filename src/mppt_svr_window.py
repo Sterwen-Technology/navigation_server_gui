@@ -5,10 +5,10 @@ import sys
 import logging
 
 # sys.path.insert(0, "../../navigation_server/src/navigation_clients")
-sys.path.insert(0, "../../navigation_server/navigation_server")
+sys.path.insert(0, "../../navigation_server")
 
 from guizero import App, Window, Text, Box, PushButton, Drawing
-from navigation_clients.energy_client import *
+from navigation_server.navigation_clients import GrpcClient, MPPT_Client
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -18,7 +18,9 @@ class MpptServerBox:
 
     def __init__(self, parent, address, port):
         self._address = "%s:%d" % (address, port)
-        self._server = MPPT_Client(self._address)
+        self._server = GrpcClient(self._address)
+        self._service = MPPT_Client()
+        self._server.add_service(self._service)
         self._window = Window(parent, title="MPPT control", width=700)
         self._window.hide()
         self._proxy = None
@@ -99,7 +101,7 @@ class MpptServerBox:
 
     def get_device(self):
         try:
-            self._proxy = self._server.getDeviceInfo()
+            self._proxy = self._service.getDeviceInfo()
             self.refresh_device()
         except GrpcAccessException:
             pass
@@ -107,7 +109,7 @@ class MpptServerBox:
     def get_output(self):
         self._output = self._server.getOutput()
         if self._output is not None:
-            self._trend_values = self._server.getTrend()
+            self._trend_values = self._service.getTrend()
             self.refresh_output()
 
     def set_refresh_timers(self):
@@ -117,7 +119,7 @@ class MpptServerBox:
 
     def open(self):
         try:
-            resp = self._server.server_status()
+            resp = self._service.server_status()
             self.set_state('CONNECTED')
             self._connected = True
             self.get_device()

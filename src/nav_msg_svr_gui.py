@@ -8,7 +8,8 @@ import logging
 sys.path.insert(0, "../../navigation_server/")
 
 from guizero import App, ListBox, Text, Box, PushButton, MenuBar, Window, TextBox
-from navigation_server.navigation_clients import *
+from navigation_server.navigation_clients import ConsoleClient, GrpcClient
+from navigation_server.router_common import GrpcAccessException
 from control_panel import ControlPanel
 from mppt_svr_window import MpptServerBox
 from util_functions import format_date, format_timestamp
@@ -139,7 +140,7 @@ class CouplerBox:
             return
         try:
             inst = self._client.get_coupler(self._coupler.name)
-        except ConsoleAccessException:
+        except GrpcAccessException:
             self.disable()
             return
         _logger.debug("Coupler %s refresh msg %d" % (inst.name, inst.msg_in))
@@ -231,7 +232,7 @@ class LogControlWindow:
     def refresh(self):
         try:
             current_date = self._coupler.send_cmd(self._client, 'current_log_date')
-        except ConsoleAccessException:
+        except GrpcAccessException:
             self._window.hide()
             self._box.cancel(self.refresh)
             return
@@ -322,7 +323,7 @@ class ServerBox:
         try:
             self._proxy = console.server_status()
             self._connected = True
-        except ConsoleAccessException:
+        except GrpcAccessException:
             self._state_text.append('DISCONNECTED')
             return
         self.finalize()
@@ -405,7 +406,7 @@ class ServerBox:
         if self._connected:
             try:
                 couplers = self._server.get_couplers()
-            except ConsoleAccessException:
+            except GrpcAccessException:
                 return
             if couplers is not None:
                 self._coupler_list.set_couplers(couplers)
@@ -430,7 +431,7 @@ class ServerBox:
     def stop_server(self):
         try:
             self._server.server_cmd('stop')
-        except ConsoleAccessException:
+        except GrpcAccessException:
             pass
         self.set_state('DISCONNECTED')
         self._connected = False
@@ -440,7 +441,7 @@ class ServerBox:
     def refresh(self):
         try:
             self._proxy = self._server.server_status()
-        except ConsoleAccessException:
+        except GrpcAccessException:
             self.set_state('DISCONNECTED')
             self._connected = False
             if self._finalized:
@@ -557,7 +558,9 @@ def main():
     _logger.addHandler(loghandler)
     _logger.setLevel(logging.INFO)
 
-    console = ConsoleClient(server)
+    grpc_server = GrpcClient(server)
+    console = ConsoleClient()
+    grpc_server.add_service(console)
     top = App(title="Navigation router control", width=900, height=640)
     control_panel_window = ControlPanel(top, opts.address, opts.system)
     mppt_window = MpptServerBox(top, opts.address, opts.mppt)

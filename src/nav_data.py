@@ -9,15 +9,16 @@ from guizero import Window, Text, Box, PushButton, ListBox
 from util_functions import format_date
 
 
-from navigation_clients.navigation_data_client import NavigationDataServerProxy, EngineClient
+from navigation_clients import EngineClient, GrpcClient
 from router_common import GrpcAccessException
 
 
 class DataWindow:
 
     def __init__(self, parent, server_addr, port):
-        self._server = NavigationDataServerProxy(f"{server_addr}:{port}")
-        self._engine_client = EngineClient(self._server.channel)
+        self._server = GrpcClient(f"{server_addr}:{port}")
+        self._engine_client = EngineClient()
+        self._server.add_service(self._engine_client)
         self._top = Window(parent, title="Navigation Data Panel", width=1100)
         self._top.hide()
         # engine section
@@ -41,6 +42,8 @@ class DataWindow:
 
 
     def open(self):
+        if self._server.state == GrpcClient.NOT_CONNECTED:
+            self._server.connect()
         self._top.show()
         self.refresh()
         self._top.repeat(10000, self.refresh)

@@ -6,7 +6,7 @@ from guizero import Window, Box, Text, PushButton, ListBox
 
 sys.path.insert(0, "../../navigation_server/navigation_server")
 
-from navigation_clients.agent_client import AgentClient
+from navigation_clients import AgentClient, GrpcClient
 from router_common.protobuf_utilities import GrpcAccessException
 
 
@@ -18,7 +18,9 @@ class ControlPanel:
     def __init__(self, parent, address, port):
         #
         addr = "%s:%d" % (address, port)
-        self._client = AgentClient(addr)
+        self._server = GrpcClient(addr)
+        self._client = AgentClient()
+        self._server.add_service(self._client)
         # test connection
         self._top = Window(parent, title="Remote Control Panel", width=1100)
         self._top.hide()
@@ -39,8 +41,8 @@ class ControlPanel:
 
     def open(self):
         _logger.info("Open system control window")
-        if self._client.state == AgentClient.NOT_CONNECTED:
-            self._client.connect()
+        if self._server.state == GrpcClient.NOT_CONNECTED:
+            self._server.connect()
         try:
             res = self._client.send_cmd_single_resp('uptime')
         except GrpcAccessException:
