@@ -3,14 +3,14 @@ import sys
 import logging
 
 # sys.path.insert(0, "../../navigation_server/src/navigation_clients")
-sys.path.insert(0, "../../navigation_server/navigation_server")
+sys.path.insert(0, "../../navigation_server/")
 
 from guizero import Window, Text, Box, PushButton, ListBox
 from util_functions import format_date
 
 
-from navigation_clients import EngineClient, GrpcClient
-from router_common import GrpcAccessException
+from navigation_server.navigation_clients import EngineClient
+from navigation_server.router_common import GrpcAccessException, GrpcClient
 
 
 class DataWindow:

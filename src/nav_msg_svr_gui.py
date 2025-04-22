@@ -14,6 +14,7 @@ from control_panel import ControlPanel
 from mppt_svr_window import MpptServerBox
 from util_functions import format_date, format_timestamp
 from nav_data import DataWindow
+from network_control import NetworkWindow
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -519,11 +520,12 @@ class MainMenu:
         self._system_window = None
         self._mppt_window = None
         self._data_window = None
+        self._network_window = None
         self._menu = MenuBar(parent,
                              toplevel=['File', 'Functions'],
                              options=[
                                 [['Quit', self.quit]],
-                                [['System', self.system], ['MPPT', self.mppt], ['DATA', self.data]]
+                                [['System', self.system], ['Network', self.network], ['MPPT', self.mppt], ['DATA', self.data]]
                              ])
 
     def quit(self):
@@ -547,6 +549,12 @@ class MainMenu:
     def set_data_window(self, window):
         self._data_window = window
 
+    def network(self):
+        self._network_window.open()
+
+    def set_network_window(self, window):
+        self._network_window = window
+
 
 def main():
     opts = Options(parser)
@@ -562,13 +570,16 @@ def main():
     console = ConsoleClient()
     grpc_server.add_service(console)
     top = App(title="Navigation router control", width=900, height=640)
-    control_panel_window = ControlPanel(top, opts.address, opts.system)
+    grpc_system_server = GrpcClient(f"{opts.address}:{opts.system}")
+    control_panel_window = ControlPanel(top, grpc_system_server)
     mppt_window = MpptServerBox(top, opts.address, opts.mppt)
     data_window = DataWindow(top, opts.address, opts.data)
+    network_window = NetworkWindow(top, grpc_system_server)
     menu = MainMenu(top)
     menu.set_system_window(control_panel_window)
     menu.set_mppt_window(mppt_window)
     menu.set_data_window(data_window)
+    menu.set_network_window(network_window)
     server_box = ServerBox(top, server, console)
     coupler_wbox = Box(top, align='left', layout='grid')
     coupler_box = CouplerBox(coupler_wbox, [1, 0], console)

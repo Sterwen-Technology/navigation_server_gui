@@ -4,10 +4,10 @@ import sys
 from guizero import Window, Box, Text, PushButton, ListBox
 
 
-sys.path.insert(0, "../../navigation_server/navigation_server")
+sys.path.insert(0, "../../navigation_server/")
 
-from navigation_clients import AgentClient, GrpcClient
-from router_common.protobuf_utilities import GrpcAccessException
+from navigation_server.navigation_clients import AgentClient
+from navigation_server.router_common import GrpcAccessException, GrpcClient
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -15,10 +15,9 @@ _logger = logging.getLogger("ShipDataClient")
 
 class ControlPanel:
 
-    def __init__(self, parent, address, port):
+    def __init__(self, parent, server):
         #
-        addr = "%s:%d" % (address, port)
-        self._server = GrpcClient(addr)
+        self._server = server
         self._client = AgentClient()
         self._server.add_service(self._client)
         # test connection
@@ -35,7 +34,7 @@ class ControlPanel:
         ServiceControl(box, 1, self._client, 'navigation', "Messages Server", status)
         ServiceControl(box, 2, self._client, "energy", "Energy Management", status)
         ServiceControl(box, 3, self._client, "navigation_data", "Navigation Data", status)
-        NetworkControl(box, 4, self._client, "wlan0", status)
+        # NetworkControl(box, 4, self._client, "wlan0", status)
 
         PushButton(self._top, align='right', text='Close', command=self.close)
 
