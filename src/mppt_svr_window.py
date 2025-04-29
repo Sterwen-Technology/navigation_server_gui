@@ -9,6 +9,7 @@ sys.path.insert(0, "../../navigation_server")
 
 from guizero import App, Window, Text, Box, PushButton, Drawing
 from navigation_server.navigation_clients import GrpcClient, MPPT_Client
+from navigation_server.router_common import GrpcAccessException
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -107,7 +108,7 @@ class MpptServerBox:
             pass
 
     def get_output(self):
-        self._output = self._server.getOutput()
+        self._output = self._service.getOutput()
         if self._output is not None:
             self._trend_values = self._service.getTrend()
             self.refresh_output()
