@@ -6,8 +6,7 @@ from guizero import Window, Box, Text, PushButton, ListBox
 
 sys.path.insert(0, "../../navigation_server/")
 
-from navigation_server.navigation_clients import AgentClient
-from navigation_server.router_common import GrpcAccessException, GrpcClient
+from navigation_server.router_common import GrpcAccessException, GrpcClient, AgentClient
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -15,54 +14,54 @@ _logger = logging.getLogger("ShipDataClient")
 
 class ControlPanel:
 
-    def __init__(self, parent, server):
+    def __init__(self, parent, address):
         #
-        self._server = server
+        self._server = GrpcClient.get_client(address)
         self._client = AgentClient()
         self._server.add_service(self._client)
         # test connection
-        self._top = Window(parent, title="Remote Control Panel", width=1100)
-        self._top.hide()
-        # now create all the buttons
-        self._status = Text(self._top, align='top')
-        box = Box(self._top, layout='grid')
+        self._server.connect()
+        # create the header
+        self._box = Box(parent, align='top', layout='grid')
+        Text(self._box, grid=[0, 0], text="Server@")
+        self._addr_text = Text(self._box, grid=[1, 0], text=address)
+        self._state_text = Text(self._box, grid=[2, 0])
+        self._hostname_text = Text(self._box, grid=[3, 0])
+        self._connected = False
+        system_box = Box(parent, align='top', layout='grid')
         # first row => global system
-        Text(box, grid=[0, 0], text="System control")
-        PushButton(box, grid=[1, 0], text="Stop", command=self.stop_system_request)
-        PushButton(box, grid=[2, 0], text="Restart", command=self.restart_system_request)
-        status = ListBox(self._top, align='left', width='fill')
-        ServiceControl(box, 1, self._client, 'navigation', "Messages Server", status)
-        ServiceControl(box, 2, self._client, "energy", "Energy Management", status)
-        ServiceControl(box, 3, self._client, "navigation_data", "Navigation Data", status)
-        # NetworkControl(box, 4, self._client, "wlan0", status)
+        Text(system_box, grid=[0, 0], text="System control")
+        PushButton(system_box, grid=[1, 0], text="Stop", command=self.stop_system_request)
+        PushButton(system_box, grid=[2, 0], text="Restart", command=self.restart_system_request)
+        Text(parent,align='top', text='processes in system')
+        self._process_box = Box(parent, align='top', layout='grid')
+        self._process_list = None
 
-        PushButton(self._top, align='right', text='Close', command=self.close)
-
-    def open(self):
-        _logger.info("Open system control window")
-        if self._server.state == GrpcClient.NOT_CONNECTED:
-            self._server.connect()
         try:
-            res = self._client.send_cmd_single_resp('uptime')
+            self._system = self._client.systemd_cmd('status')
+            self._connected = True
         except GrpcAccessException:
             return
-        self._status.clear()
-        self._status.append(f"Connect on agent running {res}")
-        print(res)
-        self._top.show()
 
-    def close(self):
-        self._top.hide()
+        self.display_processes()
+
+    def display_processes(self):
+        processes = self._system.get_processes()
+        line = 0
+        self._process_list = []
+        for process in processes:
+            self._process_list.append(ServiceControl(self._process_box, line, self._client, process))
+            line += 1
 
     def stop_system(self):
         print("System stop")
         try:
-            res = self._client.send_cmd_no_resp('halt')
+            res = self._client.system_cmd('halt')
         except Exception as e:
             print(e)
 
     def restart_system(self):
-        self._client.send_cmd_no_resp('reboot')
+        self._client.system_cmd('reboot')
 
     def stop_system_request(self):
         ConfirmationWindow(self._top, "Confirm stopping the navigation router ?", self.stop_system)
@@ -73,15 +72,16 @@ class ControlPanel:
 
 class ServiceControl:
 
-    def __init__(self, parent, line, client, service, service_name, status_text):
-        self._service = service
+    def __init__(self, parent, line, client, process):
         self._client = client
-        self._status_text = status_text
-        Text(parent, grid=[0, line], text=service_name)
-        PushButton(parent, grid=[1, line], text="Status", command=self.status)
-        PushButton(parent, grid=[2,line], text="Start", command=self.start)
-        PushButton(parent, grid=[3, line], text="Restart", command=self.restart)
-        PushButton(parent, grid=[4, line], text="Stop", command=self.stop)
+        self._process = process
+        Text(parent, grid=[0, line], text=process.name)
+        self._state = Text(parent, grid=[1, line], text=process.state)
+        self._stat_pb = PushButton(parent, grid=[2, line], text="Status", command=self.status)
+        self._start_pb = PushButton(parent, grid=[3,line], text="Start", command=self.start)
+        self._restart_pb =PushButton(parent, grid=[4, line], text="Restart", command=self.restart)
+        self._stop_pb = PushButton(parent, grid=[5, line], text="Stop", command=self.stop)
+        self.open_pb = PushButton(parent, grid=[6, line], text="Open", command=self.open)
 
     def status(self):
         self.exec_cmd('status')
@@ -96,36 +96,16 @@ class ServiceControl:
         self.exec_cmd('stop')
 
     def exec_cmd(self, cmd):
-        self._status_text.clear()
+        self._state.clear()
         try:
-            lines = self._client.systemd_cmd(cmd, self._service)
-            for l in lines:
-                self._status_text.append(l)
+            resp = self._client.process_cmd(cmd, self._process.name)
+            if resp is not None:
+                self._process = resp
         except GrpcAccessException:
             pass
 
-
-class NetworkControl:
-
-    def __init__(self, parent, line, client, interface, status_text):
-        self._client = client
-        self._interface = interface
-        self._status_text = status_text
-        Text(parent, grid=[0, line], text=interface)
-        PushButton(parent, grid=[1, line], text='Status', command=self.status)
-        PushButton(parent, grid=[2, line], text='Reset', command=self.reset)
-
-    def status(self):
-        _logger.info("Device status not implemented")
-
-    def reset(self):
-        _logger.info(f"Sending reset for {self._interface}")
-        self._status_text.clear()
-        try:
-            line = self._client.network_cmd('reset_device', self._interface)
-            self._status_text.append(line)
-        except GrpcAccessException:
-            pass
+    def open(self):
+        pass
 
 
 class ConfirmationWindow:
