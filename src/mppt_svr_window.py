@@ -8,8 +8,8 @@ import logging
 sys.path.insert(0, "../../navigation_server")
 
 from guizero import App, Window, Text, Box, PushButton, Drawing
-from navigation_server.navigation_clients import GrpcClient, MPPT_Client
-from navigation_server.router_common import GrpcAccessException
+from navigation_server.navigation_clients import MPPT_Client
+from navigation_server.router_common import GrpcAccessException, GrpcClient
 
 
 _logger = logging.getLogger("ShipDataClient")

@@ -8,13 +8,13 @@ import logging
 sys.path.insert(0, "../../navigation_server/")
 
 from guizero import App, ListBox, Text, Box, PushButton, MenuBar, Window, TextBox
-from navigation_server.navigation_clients import GrpcClient
-from navigation_server.router_common import GrpcAccessException
+from navigation_server.router_common import GrpcAccessException, GrpcClient
 from control_panel import ControlPanel
 from mppt_svr_window import MpptServerBox
 from util_functions import format_date, format_timestamp
 from nav_data import DataWindow
 from network_control import NetworkWindow
+from n2k_can_window import N2kCanWindow
 
 
 _logger = logging.getLogger("ShipDataServer")
@@ -97,7 +97,7 @@ class MainMenu:
         self._network_window = window
 
     def nmea2000(self):
-        pass
+        self._nmea2000_window.open()
 
     def set_nmea2000_window(self, window):
         self._nmea2000_window = window
@@ -118,10 +118,13 @@ def main():
     mppt_window = MpptServerBox(top, opts.address, opts.mppt)
     data_window = DataWindow(top, opts.address, opts.data)
     network_window = NetworkWindow(top, f"{opts.address}:4545")
+    nmea2000_window = N2kCanWindow(top, server)
+    control_panel = ControlPanel(top, opts.address, 4545)
     menu = MainMenu(top)
     menu.set_mppt_window(mppt_window)
     menu.set_data_window(data_window)
     menu.set_network_window(network_window)
+    menu.set_nmea2000_window(nmea2000_window)
     top.display()
 
 

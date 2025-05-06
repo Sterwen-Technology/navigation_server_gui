@@ -264,16 +264,20 @@ class CouplerListBox:
         self._coupler_list.clear()
 
 
-class ServerBox:
+class ProcessWindow:
 
-    def __init__(self, parent, address, console):
+    def __init__(self, parent, address, name):
         self._address = address
-        self._server = console
+        self._server = GrpcClient.get_client(address)
+        self._console = ConsoleClient()
+        self._server.add_service(self._console)
         self._parent = parent
         self._coupler_list = None
         self._coupler_box = None
         self._devices = None
-        self._box = Box(parent, align='top', layout='grid')
+        self._window = Window(parent, title=f"Control console for {name}")
+        self._window.hide()
+        self._box = Box(self._window, align='top', layout='grid')
         Text(self._box, grid=[0, 0], text="Server@")
         self._addr_text = Text(self._box, grid=[1, 0], text=address)
         self._state_text = Text(self._box, grid=[2, 0])
@@ -281,7 +285,7 @@ class ServerBox:
         self._connected = False
         self._finalized = False
         try:
-            self._proxy = console.server_status()
+            self._proxy = self._console.server_status()
             self._connected = True
         except GrpcAccessException:
             self._state_text.append('DISCONNECTED')
@@ -317,45 +321,8 @@ class ServerBox:
         for ss in self._proxy.sub_servers():
             self._sub_server_lines.append(SubServerBox(self._sub_servers_box, index, ss))
             index += 1
-        devices_head = Box(self._parent, align='top')
-        Text(devices_head, align='left', text="NMEA2000 Devices")
-        PushButton(devices_head, align='right', text='Refresh list', command=self.force_refresh_devices)
-        self._devices_box = Box(self._parent, align='top', layout='grid')
-        Text(self._devices_box, grid=[0, 0], text="Address")
-        Text(self._devices_box, grid=[1, 0], text="Manufacturer")
-        Text(self._devices_box, grid=[2, 0], text="Product Name")
-        # Text(self._devices_box, grid=[3, 0], text="ISO System Name")
-        Text(self._devices_box, grid=[3, 0], text="Last seen ")
-        self._devices = self._server.get_devices()
-        self._devices_lines = []
-        self.fill_device()
 
-    def fill_device(self):
-        index = 1
-        for dev in self._devices:
-            self._devices_lines.append(DeviceBox(self._devices_box, index, dev))
-            index += 1
 
-    def refresh_devices(self, command=None):
-        devices = self._server.get_devices(command)
-        _logger.info("Number of N2K devices in server %d / current %d" % (len(devices), len(self._devices)))
-        if len(devices) == len(self._devices):
-            change_flag = False
-            for dev in devices:
-                if dev.changed:
-                    change_flag = True
-        else:
-            change_flag = True
-        if not change_flag:
-            return
-        for db in self._devices_lines:
-            db.destroy()
-        self._devices_lines = []
-        self._devices = devices
-        self.fill_device()
-
-    def force_refresh_devices(self):
-        self.refresh_devices('poll')
 
     def set_coupler_widgets(self, coupler_box, coupler_list):
         self._coupler_list = coupler_list
@@ -422,7 +389,6 @@ class ServerBox:
             self._connected = True
             self.refresh_couplers()
 
-        self.refresh_devices()
         self._coupler_box.refresh()
         sub = self._proxy.get_sub_servers()
         for l in self._sub_server_lines:
@@ -452,24 +418,7 @@ class SubServerBox:
         self._nb_connections.append(str(sub_servers[self._index].nb_connections))
 
 
-class DeviceBox:
 
-    def __init__(self, parent, index, device):
-        self._box = parent
-        self._index = index - 1  # index in the server list
-        self._addr = Text(self._box, grid=[0, index], text=device.address)
-        self._mfg = Text(self._box, grid=[1, index], text=device.manufacturer_name)
-        self._prod = Text(self._box, grid=[2, index], text=device.product_name)
-        # self._iso_name = Text(self._box, grid=[3, index], text=device.iso_name)
-        self._descr = Text(self._box, grid=[3, index], text=format_timestamp(device.last_time_seen))
-        self._details = PushButton(self._box, grid=[4, index], text="Details")
-
-    def destroy(self):
-        self._addr.destroy()
-        self._mfg.destroy()
-        self._prod.destroy()
-        self._descr.destroy()
-        self._details.destroy()
 
 
 

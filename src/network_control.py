@@ -12,7 +12,7 @@ from navigation_server.router_common import GrpcClient, GrpcAccessException
 class NetworkWindow:
 
     def __init__(self, parent, server):
-        self._server = server
+        self._server = GrpcClient.get_client(server)
         self._client = NetworkClient()
         self._server.add_service(self._client)
         self._top = Window(parent, title="Network Control", width=800)
