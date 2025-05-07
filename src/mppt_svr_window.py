@@ -58,6 +58,7 @@ class MpptServerBox:
         self._trend = Drawing(self._window, align='top', height=100, width='fill')
         self._trend.bg = 'blue'
         self._trend_values = None
+        self._window.when_closed = self.close
 
     def set_state(self, state):
         self._state_text.clear()

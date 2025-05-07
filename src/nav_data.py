@@ -39,6 +39,7 @@ class DataWindow:
         Text(box, grid=[2, 1], text="Last stop time")
         self._last_stop_time = Text(box, grid=[3, 1])
         self._events_list = ListBox(self._top, align='top', width='fill')
+        self._top.when_closed = self.close
 
 
     def open(self):
@@ -50,7 +51,7 @@ class DataWindow:
 
     def close(self):
         self._top.hide()
-        self._top.repeat(0, None)
+        self._top.cancel(self.refresh)
 
     def refresh(self):
         try:
@@ -71,8 +72,8 @@ class DataWindow:
                     for ev in engine_events:
                         print(f"Event {ev.timestamp} hours {ev.total_hours} "
                               f"from {ev.previous_state} to {ev.current_state}")
-                else:
-                    print("No events")
+                #else:
+                    # print("No events")
             else:
                 print("Problem retrieving events")
             self._state.clear()

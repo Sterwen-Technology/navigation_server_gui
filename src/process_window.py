@@ -55,7 +55,6 @@ class CouplerBox:
     def set_coupler(self, coupler):
         self._coupler = coupler
         self._disabled = False
-        print(self._coupler.coupler_class)
         if self._coupler.coupler_class in ('RawLogCoupler', 'TransparentCanLogCoupler'):
             self._start_trace.hide()
             self._stop_trace.hide()
@@ -75,15 +74,15 @@ class CouplerBox:
         self._msg_in.clear()
         self._msg_in.append(str(self._coupler.msg_in))
         self._msg_in_rate.clear()
-        self._msg_in_rate.append("%5.2f" % self._coupler.input_rate)
+        self._msg_in_rate.append("%5.1f" % self._coupler.input_rate)
         self._msg_out.clear()
         self._msg_out.append(str(self._coupler.msg_out))
         self._msg_out_rate.clear()
-        self._msg_out_rate.append("%5.2f" % self._coupler.output_rate)
+        self._msg_out_rate.append("%5.1f" % self._coupler.output_rate)
         self._raw_count.clear()
         self._raw_count.append(self._coupler.msg_raw)
         self._raw_rate.clear()
-        self._raw_rate.append("%6.2f" % self._coupler.input_rate_raw)
+        self._raw_rate.append("%6.1f" % self._coupler.input_rate_raw)
         if self._coupler.state == 'STOPPED':
             self._action.text = 'Start'
         else:
@@ -275,7 +274,7 @@ class ProcessWindow:
         self._coupler_list = None
         self._coupler_box = None
         self._devices = None
-        self._window = Window(parent, title=f"Control console for {name}")
+        self._window = Window(parent, title=f"Control console for {name}", width=800)
         self._window.hide()
         self._box = Box(self._window, align='top', layout='grid')
         Text(self._box, grid=[0, 0], text="Server@")
@@ -283,46 +282,76 @@ class ProcessWindow:
         self._state_text = Text(self._box, grid=[2, 0])
         self._hostname_text = Text(self._box, grid=[3, 0])
         self._connected = False
-        self._finalized = False
-        try:
-            self._proxy = self._console.server_status()
-            self._connected = True
-        except GrpcAccessException:
-            self._state_text.append('DISCONNECTED')
-            return
-        self.finalize()
+        self._proxy = None
+        Text(self._box,grid=[0, 1], text="Version")
+        self._version_text = Text(self._box, grid=[1, 1])
+        Text(self._box, grid=[2, 1], text='Start time')
+        self._start_time = Text(self._box, grid=[3, 1])
 
-    def finalize(self):
-        self._finalized = True
-        Text(self._box, grid=[0, 1], text=self._proxy.version)
-        Text(self._box, grid=[1, 1], text='Start time')
-        self._start_time = Text(self._box, grid=[2, 1], text=self._proxy.start_time)
-        self._hostname_text.text = self._proxy.hostname
-        self.set_state('CONNECTED')
-        self.set_hostname()
         PushButton(self._box, grid=[0, 2], text='Stop', command=self.stop_server)
-        self._status = Text(self._box, grid=[1, 2], text='Running')
+        PushButton(self._box, grid=[3, 2], text="Close", command=self.close)
+        self._status = Text(self._box, grid=[1, 2])
         # New fields
         Text(self._box, grid=[0,3], text="Settings:")
         Text(self._box, grid=[0,4], text="Server name:")
         Text(self._box, grid=[2,4], text="Purpose:")
-        if self._proxy.settings is not None:
-            self._settings = Text(self._box, grid=[1, 3], text=self._proxy.settings)
-            self._server_name = Text(self._box, grid=[1,4], text=self._proxy.name)
-            self._purpose = Text(self._box, grid=[3,4], text=self._proxy.purpose)
 
-        self._sub_servers_box = Box(self._parent, align='top', layout='grid', border=1)
-        index = 1
+        self._settings = Text(self._box, grid=[1, 3])
+        self._server_name = Text(self._box, grid=[1,4])
+        self._purpose = Text(self._box, grid=[3,4])
+
+        self._sub_servers_box = Box(self._window, align='top', layout='grid', border=1)
         Text(self._sub_servers_box, grid=[0, 0], text="Sub server name", bold=True)
         Text(self._sub_servers_box, grid=[1, 0], text="Port", bold=True)
         Text(self._sub_servers_box, grid=[2, 0], text="Type", bold=True)
         Text(self._sub_servers_box, grid=[3, 0], text="Connections", bold=True)
+        self._sub_server_lines = None
+
+        coupler_wbox = Box(self._window, align='left', layout='grid')
+        coupler_box = CouplerBox(coupler_wbox, [1, 0], self._console)
+        coupler_list = CouplerListBox(coupler_wbox, [0, 0], coupler_box)
+        self.set_coupler_widgets(coupler_box, coupler_list)
+        self._finalized = False
+        self._window.when_closed = self.close
+
+    def open(self):
+        self._window.show()
+        try:
+            self._proxy = self._console.server_status()
+            self._connected = True
+        except GrpcAccessException:
+            self._state_text.clear()
+            self._state_text.append('DISCONNECTED')
+            return
+        if not self._finalized:
+            self.setup_display()
+        self.refresh_couplers()
+        self._window.repeat(10000, self.refresh)
+
+    def close(self):
+        self._window.cancel(self.refresh)
+        self._window.hide()
+
+
+    def setup_display(self):
+        self.set_state('CONNECTED')
+        self.set_hostname()
+        self._settings.clear()
+        self._settings.append(self._proxy.settings)
+        self._server_name.clear()
+        self._server_name.append(self._proxy.name)
+        self._purpose.clear()
+        self._purpose.append(self._proxy.purpose)
+        self._version_text.clear()
+        self._version_text.append(self._proxy.version)
+        self._start_time.clear()
+        self._start_time.append(self._proxy.start_time)
         self._sub_server_lines = []
+        index = 1
         for ss in self._proxy.sub_servers():
             self._sub_server_lines.append(SubServerBox(self._sub_servers_box, index, ss))
             index += 1
-
-
+        self._finalized = True
 
     def set_coupler_widgets(self, coupler_box, coupler_list):
         self._coupler_list = coupler_list
@@ -332,7 +361,7 @@ class ProcessWindow:
     def refresh_couplers(self):
         if self._connected:
             try:
-                couplers = self._server.get_couplers()
+                couplers = self._console.get_couplers()
             except GrpcAccessException:
                 return
             if couplers is not None:
@@ -357,17 +386,18 @@ class ProcessWindow:
 
     def stop_server(self):
         try:
-            self._server.server_cmd('stop')
+            self._console.server_cmd('stop')
         except GrpcAccessException:
-            pass
+            return
         self.set_state('DISCONNECTED')
         self._connected = False
         self._coupler_list.clear_list()
         self._coupler_box.disable()
 
     def refresh(self):
+        _logger.info("Process Window refresh")
         try:
-            self._proxy = self._server.server_status()
+            self._proxy = self._console.server_status()
         except GrpcAccessException:
             self.set_state('DISCONNECTED')
             self._connected = False
@@ -380,7 +410,7 @@ class ProcessWindow:
             return
         if not self._connected:
             if not self._finalized:
-                self.finalize()
+                self.setup_display()
             self.set_state('CONNECTED')
             self.set_status('Running')
             self._start_time.append(self._proxy.start_time)
@@ -393,9 +423,6 @@ class ProcessWindow:
         sub = self._proxy.get_sub_servers()
         for l in self._sub_server_lines:
             l.refresh(sub)
-
-    def set_refresh_timer(self):
-        self._box.repeat(10000, self.refresh)
 
     @property
     def connected(self) -> bool:
@@ -417,23 +444,3 @@ class SubServerBox:
         self._nb_connections.clear()
         self._nb_connections.append(str(sub_servers[self._index].nb_connections))
 
-
-
-
-
-
-class ProcessWindow:
-
-    def __init__(self, parent, server:str):
-
-        # first connect to the server
-        self._server = GrpcClient.get_client(server)
-        self._service = ConsoleClient()
-        self._server.add_service(self._service)
-        self._top = Window(parent, title="Process Control Window", width=1100)
-        server_box = ServerBox(self._top, server, self._service)
-        coupler_wbox = Box(self._top, align='left', layout='grid')
-        coupler_box = CouplerBox(coupler_wbox, [1, 0], self._service)
-        coupler_list = CouplerListBox(coupler_wbox, [0, 0], coupler_box)
-        server_box.set_coupler_widgets(coupler_box, coupler_list)
-        server_box.set_refresh_timer()

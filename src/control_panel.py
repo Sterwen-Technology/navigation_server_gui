@@ -7,6 +7,7 @@ from guizero import Window, Box, Text, PushButton, ListBox
 sys.path.insert(0, "../../navigation_server/")
 
 from navigation_server.router_common import GrpcAccessException, GrpcClient, AgentClient
+from process_window import ProcessWindow
 
 
 _logger = logging.getLogger("ShipDataClient")
@@ -136,8 +137,9 @@ class ServiceControl:
         self._open_pb = PushButton(parent, grid=[7, line], text="Open", command=self.open)
         if not process.console_present:
             self._open_pb.hide()
+            self._window = None
         else:
-
+            self._window = ProcessWindow(parent, f"{address}:{process.grpc_port}", process.name)
         self.refresh_process(process)
 
 
@@ -169,7 +171,7 @@ class ServiceControl:
             return None
 
     def open(self):
-        print("open console on", self._address,"port", self._process.grpc_port)
+        self._window.open()
 
 
     def refresh_process(self, process):
