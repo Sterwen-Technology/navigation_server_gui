@@ -21,7 +21,7 @@ class N2kCanWindow:
         self._server = GrpcClient.get_client(server)
         self._service = NMEA2000CanClient()
         self._server.add_service(self._service)
-        self._parent = Window(parent, title="NMEA2000 and CAN controls", width=800)
+        self._parent = Window(parent, title="NMEA2000 and CAN controls", width=800, height=900)
         self._parent.hide()
         status_box = Box(self._parent, align='top', layout='grid')
         Text(status_box, grid=[0, 0], text=f'server@{server}')
