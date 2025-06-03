@@ -11,14 +11,18 @@ from navigation_server.router_common import GrpcClient, GrpcAccessException
 
 class NetworkWindow:
 
-    def __init__(self, parent, server):
-        self._server = GrpcClient.get_client(server)
-        self._client = NetworkClient()
-        self._server.add_service(self._client)
+    def __init__(self, parent):
+        self._server = None
+        self._client = None
+
         self._top = Window(parent, title="Network Control", width=800)
         self._top.hide()
 
-    def open(self):
+    def open(self, server):
+        if self._server is None:
+            self._server = server
+            self._client = NetworkClient()
+            self._server.add_service(self._client)
         if self._server.state == GrpcClient.NOT_CONNECTED:
             self._server.connect()
         # now retrieve all status and interfaces

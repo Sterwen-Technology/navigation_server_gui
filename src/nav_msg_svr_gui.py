@@ -8,7 +8,7 @@ import logging
 sys.path.insert(0, "../../navigation_server/")
 
 from guizero import App, ListBox, Text, Box, PushButton, MenuBar, Window, TextBox
-from navigation_server.router_common import GrpcAccessException, GrpcClient
+from navigation_server.router_common import GrpcAccessException, GrpcClient, AgentClient
 from control_panel import ControlPanel
 from mppt_svr_window import MpptServerBox
 from util_functions import format_date, format_timestamp
@@ -58,6 +58,7 @@ class Options(object):
             raise AttributeError(name)
 
 
+global_variables = {}
 
 
 class MainMenu:
@@ -75,29 +76,49 @@ class MainMenu:
                                 [['NMEA2000', self.nmea2000], ['Network', self.network], ['MPPT', self.mppt], ['DATA', self.data]]
                              ])
 
+    def get_connection_parameters(self, process_name) -> (str, int):
+        agent = global_variables['agent']
+        port = agent.get_port(process_name)
+        return global_variables['address'], port
+
     def quit(self):
         sys.exit(0)
 
     def mppt(self):
-        self._mppt_window.open()
+        if self._mppt_window is None:
+            self._mppt_window = MpptServerBox(self._parent)
+        address, port = self.get_connection_parameters('Energy')
+        if port > 0:
+            self._mppt_window.open(address, port)
 
     def set_mppt_window(self, window):
         self._mppt_window = window
 
     def data(self):
-        self._data_window.open()
+        if self._data_window is None:
+            self._data_window = DataWindow(self._parent)
+        address, port = self.get_connection_parameters('Data')
+        if port > 0:
+            self._data_window.open(address, port)
 
     def set_data_window(self, window):
         self._data_window = window
 
     def network(self):
-        self._network_window.open()
+        if self._network_window is None:
+            self._network_window = NetworkWindow(self._parent)
+        agent = global_variables['agent']
+        self._network_window.open(agent.server)
 
     def set_network_window(self, window):
         self._network_window = window
 
     def nmea2000(self):
-        self._nmea2000_window.open()
+        if self._nmea2000_window is None:
+            self._nmea2000_window = N2kCanWindow(self._parent)
+        address, port = self.get_connection_parameters('STNC_CAN_Server')
+        if port > 0 :
+            self._nmea2000_window.open(address, port)
 
     def set_nmea2000_window(self, window):
         self._nmea2000_window = window
@@ -105,7 +126,6 @@ class MainMenu:
 
 def main():
     opts = Options(parser)
-    server = "%s:%d" % (opts.address, opts.port)
     # logger setup => stream handler for now
     loghandler = logging.StreamHandler()
     logformat = logging.Formatter("%(asctime)s | [%(levelname)s] %(message)s")
@@ -113,18 +133,23 @@ def main():
     _logger.addHandler(loghandler)
     _logger.setLevel(logging.INFO)
 
+    if opts.address is not None:
+        global_variables['address'] = opts.address
 
     top = App(title="Navigation router control", width=900, height=640)
-    mppt_window = MpptServerBox(top, opts.address, opts.mppt)
-    data_window = DataWindow(top, opts.address, opts.data)
-    network_window = NetworkWindow(top, f"{opts.address}:4545")
-    nmea2000_window = N2kCanWindow(top, server)
-    control_panel = ControlPanel(top, opts.address, 4545)
+    navigation_agent_server = GrpcClient.get_client(f"{opts.address}:4545")
+    agent = AgentClient()
+    global_variables['agent'] = agent
+    navigation_agent_server.add_service(agent)
+    navigation_agent_server.connect()
+    if not navigation_agent_server.wait_connect(10.):
+        # if no response from the agent server, let's give up
+        _logger.error("No agent available")
+        return
+
     menu = MainMenu(top)
-    menu.set_mppt_window(mppt_window)
-    menu.set_data_window(data_window)
-    menu.set_network_window(network_window)
-    menu.set_nmea2000_window(nmea2000_window)
+    control_panel = ControlPanel(top, agent)
+
     top.display()
 
 

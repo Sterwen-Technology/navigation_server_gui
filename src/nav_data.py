@@ -15,10 +15,9 @@ from navigation_server.router_common import GrpcAccessException, GrpcClient
 
 class DataWindow:
 
-    def __init__(self, parent, server_addr, port):
-        self._server = GrpcClient(f"{server_addr}:{port}")
-        self._engine_client = EngineClient()
-        self._server.add_service(self._engine_client)
+    def __init__(self, parent):
+        self._server = None
+        self._engine_client = None
         self._top = Window(parent, title="Navigation Data Panel", width=1100)
         self._top.hide()
         # engine section
@@ -42,7 +41,12 @@ class DataWindow:
         self._top.when_closed = self.close
 
 
-    def open(self):
+    def open(self, address, port):
+        if self._server is None:
+            self._server = GrpcClient.get_client(f"{address}:{port}")
+            self._engine_client = EngineClient()
+            self._server.add_service(self._engine_client)
+
         if self._server.state == GrpcClient.NOT_CONNECTED:
             self._server.connect()
         self._top.show()

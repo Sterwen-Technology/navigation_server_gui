@@ -17,11 +17,11 @@ _logger = logging.getLogger("ShipDataClient")
 
 class MpptServerBox:
 
-    def __init__(self, parent, address, port):
-        self._address = "%s:%d" % (address, port)
-        self._server = GrpcClient(self._address)
-        self._service = MPPT_Client()
-        self._server.add_service(self._service)
+    def __init__(self, parent):
+        self._address = None
+        self._server = None
+        self._service = None
+
         self._window = Window(parent, title="MPPT control", width=700)
         self._window.hide()
         self._proxy = None
@@ -29,7 +29,7 @@ class MpptServerBox:
 
         self._box = Box(self._window, align='top', layout='grid')
         Text(self._box, grid=[0, 0], text="Server@")
-        self._addr_text = Text(self._box, grid=[1, 0], text=address)
+        self._addr_text = Text(self._box, grid=[1, 0])
         PushButton(self._box, grid=[3, 0], text="Close", command=self.close)
         self._state_text = Text(self._box, grid=[2, 0])
         Text(self._box, grid=[0, 1], text="Product ID")
@@ -119,7 +119,13 @@ class MpptServerBox:
         if self._connected:
             self._box.repeat(2000, self.get_output)
 
-    def open(self):
+    def open(self, address, port):
+        if self._server is None:
+            self._address = "%s:%d" % (address, port)
+            self._server = GrpcClient.get_client(self._address)
+            self._service = MPPT_Client()
+            self._server.add_service(self._service)
+            self._addr_text.append(self._address)
         try:
             resp = self._service.server_status()
             self.set_state('CONNECTED')
