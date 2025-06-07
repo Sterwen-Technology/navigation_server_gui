@@ -52,6 +52,9 @@ class ControlPanel:
         if self._system is None:
             return
         self.display_processes()
+        self._status_box = Box(parent, align='bottom', layout='grid', width='fill')
+        Text(self._status_box, grid=[0,0], text="Command status")
+        self._status_text = Text(self._status_box, grid=[1,0])
 
     @property
     def address(self):
@@ -84,9 +87,15 @@ class ControlPanel:
             res = self._client.system_cmd('halt')
         except Exception as e:
             print(e)
+        print("System stop executed")
+        self._state_text.clear()
+        self._state_text.append('DISCONNECTED')
+
 
     def restart_system(self):
         self._client.system_cmd('reboot')
+        self._state_text.clear()
+        self._state_text.append('DISCONNECTED')
 
     def stop_system_request(self):
         ConfirmationWindow(self._top, "Confirm stopping the navigation router ?", self.stop_system)
@@ -116,11 +125,18 @@ class ControlPanel:
             self._state_text.clear()
             self._state_text.append('DISCONNECTED')
             self._connected = False
+            self.update_status_text(f"Connection attempt to server:{self._client.server.address}")
             if self._client.server_connect_wait(5.0):
+                self.update_status_text(f"Successful connection to server:{self._client.server.address}")
                 self._state_text.clear()
                 self._state_text.append('CONNECTED')
                 self._connected = True
+            else:
+                self.update_status_text(f"Connection attempt to server:{self._client.server.address}")
 
+    def update_status_text(self, text:str):
+        self._status_text.clear()
+        self._status_text.append(text)
 
 
 
