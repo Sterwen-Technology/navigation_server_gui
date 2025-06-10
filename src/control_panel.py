@@ -16,11 +16,12 @@ _logger = logging.getLogger("ShipDataClient")
 
 class ControlPanel:
 
-    def __init__(self, parent, client):
+    def __init__(self, parent, client, address):
         #
 
         self._client = client
         self._top = parent
+        self._server_address = address  # no port included
         # create the header
         self._box = Box(parent, align='top', layout='grid')
         Text(self._box, grid=[0, 0], text="Server@")
@@ -68,7 +69,7 @@ class ControlPanel:
         line = 0
         self._process_list = {}
         for process in processes:
-            self._process_list[process.name] = ServiceControl(self._process_box, line, self._client, process, self.address)
+            self._process_list[process.name] = ServiceControl(self._process_box, line, self._client, process, self._server_address)
             line += 1
         self._display_done = True
 

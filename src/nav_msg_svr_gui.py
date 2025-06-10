@@ -24,19 +24,11 @@ def _parser():
     p = ArgumentParser(description=sys.argv[0])
 
     p.add_argument("-p", "--port", action="store", type=int,
-                   default=4502,
-                   help="Console listening port, default 4502")
+                   default=4545,
+                   help="Console listening port, default 4545")
     p.add_argument("-a", "--address", action="store", type=str,
                    default='127.0.0.1',
                    help="IP address for Navigation server, default is localhost")
-    p.add_argument("-s", "--system", action="store", type=int,
-                   default=4506,
-                   help="System control agent port, default 4506")
-    p.add_argument("-mp", "--mppt", action="store", type=int,
-                   default=4505,
-                   help="MPPT server listening port, default 4505")
-    p.add_argument('-dp', '--data', action='store', type=int, default=4508,
-                   help="Data server port, default 4508")
 
     return p
 
@@ -137,7 +129,7 @@ def main():
         global_variables['address'] = opts.address
 
     top = App(title="Navigation router control", width=900, height=640)
-    navigation_agent_server = GrpcClient.get_client(f"{opts.address}:4545")
+    navigation_agent_server = GrpcClient.get_client(f"{opts.address}:{opts.port}")
     agent = AgentClient()
     global_variables['agent'] = agent
     navigation_agent_server.add_service(agent)
@@ -148,7 +140,7 @@ def main():
         return
 
     menu = MainMenu(top)
-    control_panel = ControlPanel(top, agent)
+    control_panel = ControlPanel(top, agent, opts.address)
 
     top.display()
 
